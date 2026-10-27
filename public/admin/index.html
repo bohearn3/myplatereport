@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Send a Report · MyPlateReport</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: admin workbench. Narrow form column on the left (file -> teams -> umpire -> send),
+   live report preview filling the right. Stacks on small screens. */
+:root{
+  --bg:#F3F6F9; --surface:#FFFFFF; --ink:#0D1117; --muted:#5A6573; --line:#D9E1E8;
+  --powder:#63A6DA; --deep:#1D5E8F; --good:#1F8A5B; --warn:#C7791A; --bad:#D1453B; --head:#0D1117; --headInk:#F3F6F9;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0B0E12; --surface:#141A21; --ink:#E7EDF3; --muted:#93A0AE; --line:#26303B;
+  --deep:#7FB9E6; --good:#3DBB83; --warn:#E6A040; --bad:#F0675C; --head:#000; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;display:flex;flex-direction:column}
+.band{background:var(--head);color:var(--headInk);padding:12px max(20px,env(safe-area-inset-right,0px)) 12px max(20px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:12px}
+.mark{width:36px;height:36px;border-radius:8px;background:var(--powder);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:1.25rem;color:#000}
+.band .name{font-family:var(--f-display);font-weight:800;font-size:1.3rem;text-transform:uppercase;letter-spacing:.02em}
+.band .sub{margin-left:auto;font-size:.82rem;color:#9fb4c7}
+.work{flex:1;display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);min-height:0}
+.form{padding:20px;overflow:auto;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:18px}
+.step h2{font-family:var(--f-display);font-weight:800;font-size:1.15rem;text-transform:uppercase;margin:0 0 8px;display:flex;gap:8px;align-items:center}
+.step h2 span{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--bg);font-family:var(--f-body);font-size:.75rem}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;background:var(--surface);cursor:pointer;transition:border-color .15s}
+.drop:hover,.drop.over{border-color:var(--powder)}
+.drop:focus-within{outline:2px solid var(--powder);outline-offset:2px}
+.drop b{display:block;font-size:1rem}
+.drop small{color:var(--muted)}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.game{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:.9rem}
+.game .t{font-weight:700;font-size:1rem}
+.game .m{color:var(--muted)}
+.stats{display:flex;gap:16px;margin-top:8px}
+.stats div b{display:block;font-family:var(--f-display);font-size:1.5rem;line-height:1}
+.stats div span{font-size:.75rem;color:var(--muted)}
+.msg{font-size:.85rem;padding:8px 10px;border-radius:8px;margin-top:8px}
+.msg.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.msg.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.msg.ok{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=email]{width:100%;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:2px solid var(--powder);outline-offset:1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row2 > div{min-width:0}
+button.primary{width:100%;font:inherit;font-weight:700;padding:12px;border:0;border-radius:10px;background:var(--ink);color:var(--bg);cursor:pointer}
+button.primary:disabled{opacity:.4;cursor:not-allowed}
+.hint{font-size:.8rem;color:var(--muted);margin-top:6px}
+.preview{position:relative;min-height:0;background:var(--bg)}
+.preview iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
+.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:24px}
+.empty b{display:block;font-family:var(--f-display);font-size:1.6rem;text-transform:uppercase;color:var(--ink)}
+[hidden]{display:none!important}
+@media (max-width:860px){
+  html,body{height:auto}
+  .work{grid-template-columns:1fr}
+  .form{border-right:0;border-bottom:1px solid var(--line)}
+  .preview{height:80vh}
+}
+</style>
+</head>
+<body>
+<header class="band"><div class="mark" aria-hidden="true">BB</div><div class="name">MyPlateReport</div><div class="sub">Admin · Send a report</div></header>
+<div class="work">
+  <form class="form" id="f" novalidate>
+    <section class="step">
+      <h2><span>1</span>Trackman file</h2>
+      <label class="drop" id="drop" for="file">
+        <input type="file" id="file" accept=".csv,text/csv">
+        <b id="drop-t">Drop the Trackman CSV here</b>
+        <small id="drop-s">or click to choose a file</small>
+      </label>
+      <div id="parse-msgs"></div>
+      <div class="game" id="game" hidden>
+        <div class="t" id="g-title"></div>
+        <div class="m" id="g-meta"></div>
+        <div class="stats"><div><b id="g-pitches">0</b><span>pitches</span></div><div><b id="g-calls">0</b><span>scored calls</span></div><div><b id="g-adj">–</b><span>adjusted</span></div><div><b id="g-hbp">0</b><span>HBP</span></div></div>
+      </div>
+    </section>
+
+    <section class="step" id="s-teams" hidden>
+      <h2><span>2</span>Team names</h2>
+      <div class="row2">
+        <div><label for="away-name">Visitor (<span id="away-code"></span>)</label><input type="text" id="away-name" autocomplete="off"></div>
+        <div><label for="home-name">Home (<span id="home-code"></span>)</label><input type="text" id="home-name" autocomplete="off"></div>
+      </div>
+      <p class="hint">Shown on the report. Saved for future games once the database is connected.</p>
+    </section>
+
+    <section class="step" id="s-ump" hidden>
+      <h2><span>3</span>Plate umpire</h2>
+      <label for="ump-name">Full name</label><input type="text" id="ump-name" autocomplete="off" placeholder="e.g., Brooks O'Hearn" required>
+      <label for="ump-email">Email</label><input type="email" id="ump-email" autocomplete="off" placeholder="name@example.com" required>
+    </section>
+
+    <section class="step" id="s-send" hidden>
+      <h2><span>4</span>Send</h2>
+      <button class="primary" type="submit" id="send" disabled>Save and email report</button>
+      <div id="send-msg"></div>
+      <p class="hint">The umpire gets an email with a private link to the interactive report and the PDF attached.</p>
+    </section>
+  </form>
+
+  <div class="preview">
+    <div class="empty" id="empty"><div><b>Report preview</b>Upload a Trackman CSV to see the umpire's report here.</div></div>
+    <iframe id="pv" title="Report preview" hidden></iframe>
+  </div>
+</div>
+
+<script src="/js/engine.js"></script>
+<script src="/js/trackman-csv.js"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const KNOWN = {PAC_TIG:['Pacific','Pacific Tigers'],SEA_RED:['Seattle U','Seattle University Redhawks'],SAN_TOR:['San Diego','San Diego Toreros'],ORE_BEA:['Oregon State','Oregon State Beavers'],FRE_BUL:['Fresno State','Fresno State Bulldogs'],BYU_COU:['BYU','BYU Cougars'],STM_GAE:["Saint Mary's","Saint Mary's Gaels"],LOY_LIO:['LMU','Loyola Marymount Lions'],GON_BUL:['Gonzaga','Gonzaga Bulldogs'],POR_PIL:['Portland','Portland Pilots'],SAN_BRO:['Santa Clara','Santa Clara Broncos'],SAN_DON:['San Francisco','San Francisco Dons'],PEP_WAV:['Pepperdine','Pepperdine Waves']};
+let parsed = null, ready = false;
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate = s => { if(!s) return ''; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+const shortName = full => { const known = Object.values(KNOWN).find(v => v[1] === full); return known ? known[0] : full.split(' ').slice(0,-1).join(' ') || full; };
+
+function payload(){
+  const g = {...parsed.game, umpire: $('ump-name').value.trim() || 'Plate Umpire'};
+  const teams = {};
+  const hn = $('home-name').value.trim(), an = $('away-name').value.trim();
+  if (g.HomeTeam) teams[g.HomeTeam] = [shortName(hn || g.HomeTeam), hn || g.HomeTeam];
+  if (g.AwayTeam) teams[g.AwayTeam] = [shortName(an || g.AwayTeam), an || g.AwayTeam];
+  return {fields: parsed.fields, currentFile: g.file, games: [g], teams};
+}
+function pushPreview(){ if (parsed && ready) $('pv').contentWindow.postMessage({type:'report-data', data: payload()}, location.origin); }
+window.addEventListener('message', e => { if (e.origin === location.origin && e.data && e.data.type === 'report-ready'){ ready = true; pushPreview(); } });
+
+function validate(){
+  const ok = parsed && !parsed.errors.length && $('ump-name').value.trim() && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($('ump-email').value.trim());
+  $('send').disabled = !ok;
+}
+
+async function handle(file){
+  if (!file) return;
+  const text = await file.text();
+  parsed = TrackmanCSV.parseTrackman(text, file.name);
+  const msgs = [...parsed.errors.map(t=>`<div class="msg err">${esc(t)}</div>`), ...parsed.warnings.map(t=>`<div class="msg warn">${esc(t)}</div>`)];
+  $('parse-msgs').innerHTML = msgs.join('');
+  $('drop-t').textContent = file.name; $('drop-s').textContent = 'Click to choose a different file';
+  if (parsed.errors.length){ ['game','s-teams','s-ump','s-send'].forEach(id=>$(id).hidden=true); $('pv').hidden = true; $('empty').hidden = false; validate(); return; }
+  const g = parsed.game;
+  const A = UmpEngine.analyzeGame(g, parsed.fields, UmpEngine.ZONES.nsi2027);
+  $('away-code').textContent = g.AwayTeam || '?'; $('home-code').textContent = g.HomeTeam || '?';
+  $('away-name').value = (KNOWN[g.AwayTeam]||[])[1] || g.AwayTeam || ''; $('home-name').value = (KNOWN[g.HomeTeam]||[])[1] || g.HomeTeam || '';
+  $('g-title').textContent = `${$('away-name').value} at ${$('home-name').value}`;
+  $('g-meta').textContent = [fmtDate(g.Date), (g.Stadium||'').replace(/([a-z])([A-Z])/g,'$1 $2'), g.Level].filter(Boolean).join(' · ');
+  $('g-pitches').textContent = A.total; $('g-calls').textContent = A.summary.decisions;
+  $('g-adj').textContent = A.summary.adj==null ? '–' : (A.summary.adj*100).toFixed(1)+'%'; $('g-hbp').textContent = A.hbp.length;
+  ['game','s-teams','s-ump','s-send'].forEach(id=>$(id).hidden=false);
+  $('empty').hidden = true; $('pv').hidden = false;
+  if (!$('pv').src) $('pv').src = '/report'; else pushPreview();
+  validate();
+}
+
+$('file').addEventListener('change', e => handle(e.target.files[0]));
+const drop = $('drop');
+['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => handle(e.dataTransfer.files[0]));
+let tmr; ['ump-name','home-name','away-name'].forEach(id => $(id).addEventListener('input', () => {
+  if (parsed && !parsed.errors.length) $('g-title').textContent = `${$('away-name').value} at ${$('home-name').value}`;
+  clearTimeout(tmr); tmr = setTimeout(pushPreview, 250); validate(); }));
+$('ump-email').addEventListener('input', validate);
+
+$('f').addEventListener('submit', async e => {
+  e.preventDefault(); if ($('send').disabled) return;
+  $('send').disabled = true; $('send-msg').innerHTML = '';
+  try {
+    const r = await fetch('/api/reports', {method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({umpire:{name:$('ump-name').value.trim(), email:$('ump-email').value.trim()}, report: payload()})});
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error(j.error || `The server returned ${r.status}.`);
+    $('send-msg').innerHTML = `<div class="msg ok">Sent to ${esc($('ump-email').value.trim())}. <a href="${esc(j.url)}" target="_blank" rel="noopener">Open the report</a></div>`;
+  } catch(err) {
+    $('send-msg').innerHTML = `<div class="msg err">Not sent. ${esc(err.message)}</div>`;
+  } finally { validate(); }
+});
+})();
+</script>
+</body>
+</html>

@@ -1,5 +1,10 @@
-<title>O'Hearn Plate Report 3-22-26</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Plate Umpire Report · MyPlateReport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;700&display=swap">
@@ -26,6 +31,8 @@
   --good:#3DBB83; --miss:#F0675C; --warn:#E6A040; --band:rgba(99,166,218,.20); --heat:99,166,218;
   --head:#000000; --headInk:#E7EDF3; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
 .wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1,h2,h3{text-wrap:balance;margin:0}
@@ -190,6 +197,8 @@ footer ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;max-width:90ch}
 }
 </style>
 
+</head>
+<body>
 <header class="band">
   <div class="wrap">
     <div class="mark" aria-label="BB logo placeholder"><span>BB</span></div>
@@ -204,7 +213,7 @@ footer ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;max-width:90ch}
 
 <div class="wrap">
   <div class="controls">
-    <span class="lbl">Zone standard</span>
+    <span class="lbl" id="c-zone-lbl">Zone standard</span>
     <div class="seg" id="c-zone">
       <button type="button" id="z-nsi2027" data-v="nsi2027" aria-pressed="true">2027 NSI Static</button>
       <button type="button" id="z-legacy2026" data-v="legacy2026" aria-pressed="false">2026 Zone</button>
@@ -239,7 +248,7 @@ footer ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;max-width:90ch}
       </div>
       <div class="panel">
         <div class="ph"><h3>Perceived strike zone</h3>
-          <div class="seg screenonly" id="c-pz"><button type="button" id="pz-game" data-v="game" aria-pressed="true">This game</button><button type="button" id="pz-season" data-v="season" aria-pressed="false">Last 4 games</button></div></div>
+          <div class="seg screenonly" id="c-pz"><button type="button" id="pz-game" data-v="game" aria-pressed="true">This game</button><button type="button" id="pz-season" data-v="season" aria-pressed="false">Recent games</button></div></div>
         <div id="pzchart"></div>
         <div class="legend"><span><i style="background:rgba(var(--heat),.85);border-radius:2px"></i>More likely called a strike</span><span>Solid line: where you called strikes half the time</span><span>Dashed: rulebook zone</span></div>
         <div class="exp" id="pzexp"></div>
@@ -294,13 +303,13 @@ footer ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;max-width:90ch}
   </footer>
 </div>
 
-<script>/*ENGINE*/</script>
-<script>/*DATA*/</script>
+<script src="/js/engine.js"></script>
 <script>
 (function(){
-const E = window.UmpEngine, D = window.REPORT_DATA;
+const E = window.UmpEngine; let D = null;
 const TEAMS = {PAC_TIG:['Pacific','Pacific Tigers'],SEA_RED:['Seattle U','Seattle University Redhawks'],SAN_TOR:['San Diego','San Diego Toreros'],ORE_BEA:['Oregon State','Oregon State Beavers'],FRE_BUL:['Fresno State','Fresno State Bulldogs'],BYU_COU:['BYU','BYU Cougars'],STM_GAE:["Saint Mary's","Saint Mary's Gaels"]};
-const tn = c => (TEAMS[c]||[c])[0], tfull = c => (TEAMS[c]||[c,c])[1];
+const team = c => (D && D.teams && D.teams[c]) || TEAMS[c] || [c, c];
+const tn = c => team(c)[0], tfull = c => team(c)[1];
 const P = (v,d=1) => v==null ? '–' : (v*100).toFixed(d)+'%';
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDate = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
@@ -308,7 +317,8 @@ const shortDate = s => { const [y,m,d]=s.split('-'); return `${+m}/${+d}/${y.sli
 const nameFL = n => { if(!n) return ''; const [l,f]=n.split(',').map(s=>s.trim()); return f? `${f} ${l}` : n; };
 
 let state = {zone:'nsi2027', side:'all', team:'all', pz:'game', log:'all', hl:null};
-try { const z = localStorage.getItem('bb-zone'); if (z && E.ZONES[z]) state.zone = z; } catch(e) {}
+const COMPARE = new URLSearchParams(location.search).has('compare');
+if (COMPARE) { try { const z = localStorage.getItem('bb-zone'); if (z && E.ZONES[z]) state.zone = z; } catch(e) {} }
 const cache = {};
 function analyses(zid){
   if (cache[zid]) return cache[zid];
@@ -316,7 +326,7 @@ function analyses(zid){
   const games = D.games.map(g => E.analyzeGame(g, D.fields, Z));
   const cur = games.find(a => a.meta.file === D.currentFile);
   const trend = games.map(a => E.trendPoint(a, Z));
-  return cache[zid] = {Z, games, cur, trend, league: D.league[zid]};
+  return cache[zid] = {Z, games, cur, trend, league: (D.league && D.league[zid]) || null};
 }
 
 /* ---------- zone chart ---------- */
@@ -419,6 +429,7 @@ function spark(vals, cls){
 
 /* ---------- render ---------- */
 function render(){
+  if (!D) return;
   const A = analyses(state.zone), {Z, cur, league} = A, s = cur.summary, m = cur.meta;
   const me = A.trend, curIdx = A.games.indexOf(cur), prev = me.slice(0, curIdx);
   const prevAvg = k => prev.length ? prev.reduce((a,p)=>a+(p[k]??0),0)/prev.length : null;
@@ -427,6 +438,7 @@ function render(){
   document.getElementById('h-game').textContent = `${tfull(m.away)} at ${tfull(m.home)} · ${fmtDate(m.date)} · ${m.stadium.replace(/([a-z])([A-Z])/g,'$1 $2')}`;
   document.getElementById('h-zone').textContent = Z.label;
   document.getElementById('c-src').textContent = `Trackman · ${cur.total} pitches`;
+  document.getElementById('c-zone').hidden = !COMPARE; document.getElementById('c-zone-lbl').hidden = !COMPARE;
   document.querySelectorAll('#c-zone button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===state.zone));
 
   // verdict
@@ -500,7 +512,11 @@ function render(){
     ['Adjusted accuracy','adj','up','pct'],['Raw accuracy','raw','up','pct'],['Missed calls','missN','down','n'],['Edge accuracy','edgeAcc','up','pct'],
     ['In-zone accuracy','inZoneAcc','up','pct'],['Out-of-zone accuracy','outZoneAcc','up','pct'],['Zone size vs. rulebook','zoneSize','close','pct'],['Call balance (gap)','balance','down','n']
   ];
-  document.getElementById('trend-lede').textContent = `This game compared with your average over your previous ${prev.length} tracked game${prev.length===1?'':'s'} (${prev.map(p=>shortDate(p.date)).join(', ')}). Once a season has 8 or more games, trends compare your last 5 games with your season average.`;
+  document.getElementById('trend-lede').textContent = prev.length
+    ? `This game compared with your average over your previous ${prev.length} tracked game${prev.length===1?'':'s'} (${prev.map(p=>shortDate(p.date)).join(', ')}). Once a season has 8 or more games, trends compare your last 5 games with your season average.`
+    : `This is your first tracked game. Trend arrows appear after your second game.`;
+  const pzBtn = document.getElementById('pz-season');
+  pzBtn.hidden = A.games.length < 2; pzBtn.textContent = `Last ${A.games.length} games`;
   document.getElementById('trends').innerHTML = metrics.map(([label,k,better,unit]) => {
     const v = me[curIdx][k], base = prevAvg(k);
     let dir='flat', cls='flat', d = base==null?0:v-base;
@@ -528,7 +544,7 @@ function render(){
     `Calls scored: called strikes, called balls and balls in the dirt (scored as called balls, since schools tag them differently). Hit batters${cur.ballIntentional?', intentional balls':''} and swings are not scored.`,
     `Raw accuracy uses the zone line exactly. Adjusted accuracy does not count a miss when the pitch was inside the buffer.`,
     `Edge pitch: within ${E.EDGE_BAND}" of the zone edge, inside or outside. "Off edge" is the distance from the zone line to the center of the ball.`,
-    `Perceived zone: your called pitches smoothed with a 3" kernel. The solid line marks where you called strikes half the time. Small samples are noisy; "Last 4 games" gives a steadier picture.`,
+    `Perceived zone: your called pitches smoothed with a 3" kernel. The solid line marks where you called strikes half the time. Small samples are noisy; the recent-games view gives a steadier picture.`,
     `Trends and comparisons use only your own tracked games, scored with the same zone and rules. Data file: ${esc(m.file.replace('.xlsm',''))}.`
   ].map(t=>`<li>${t}</li>`).join('');
 }
@@ -548,7 +564,26 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key==='Enter' && e.target.matches('tr.row-btn')) e.target.click(); });
 if (new URLSearchParams(location.search).get('zone')) state.zone = new URLSearchParams(location.search).get('zone');
-render();
-window.__rendered = true;
+function boot(data){
+  D = data; for (const k in cache) delete cache[k];
+  if (state.pz === 'season' && D.games.length < 2) state.pz = 'game';
+  render(); window.__rendered = true;
+  const cur = D.games.find(g => g.file === D.currentFile) || D.games[D.games.length-1];
+  if (cur) document.title = `${cur.umpire || 'Plate Umpire'} · ${shortDate(cur.Date)} · MyPlateReport`;
+}
+function showError(msg){
+  document.getElementById('lede').textContent = msg;
+}
+if (window.REPORT_DATA) boot(window.REPORT_DATA);
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'report-data') return;
+  boot(e.data.data);
+});
+const rm = location.pathname.match(/^\/r\/([A-Za-z0-9_-]+)/);
+if (rm) fetch('/api/reports/' + rm[1]).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(boot)
+  .catch(() => showError('This report link is not valid or has expired. Contact your crew coordinator for a new link.'));
+if (window.parent !== window) window.parent.postMessage({type:'report-ready'}, location.origin);
 })();
 </script>
+</body>
+</html>

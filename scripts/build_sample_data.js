@@ -1,4 +1,4 @@
-const E=require('../report/engine.js'); const fs=require('fs');
+const E=require('../public/js/engine.js'); const fs=require('fs');
 const D=JSON.parse(fs.readFileSync('data/games.json'));
 const league={};
 for (const zid of Object.keys(E.ZONES)){

@@ -7,14 +7,17 @@ Hosted on Cloudflare Workers at **myplatereport.com**.
 
 | Path | What it is |
 |---|---|
-| `src/index.js` | Cloudflare Worker: serves the site and (soon) the upload/email API |
-| `public/` | Static pages served at the site root |
-| `report/engine.js` | Scoring engine: zone checks, raw/adjusted accuracy, edge pitches, perceived zone, fairness, HBP review, trends |
-| `report/template.html` | The umpire report page (interactive + print/PDF layout) |
+| `src/index.js` | Cloudflare Worker: serves the site, private report links (`/r/<id>`) and the API |
+| `public/index.html` | Home page |
+| `public/admin/` | Admin page: upload a Trackman CSV, set team names, enter the umpire, preview, send |
+| `public/report.html` | The umpire report page (interactive + print/PDF layout). Loads data from `/api/reports/<id>`, or from the admin preview |
+| `public/js/engine.js` | Scoring engine: zone checks, raw/adjusted accuracy, edge pitches, perceived zone, fairness, HBP review, trends |
+| `public/js/trackman-csv.js` | Trackman CSV reader and file checks |
 | `scripts/build_sample_data.js` | Builds league averages and the sample report data from the 2026 Trackman export |
 
 ## Scoring rules
 
+- Add `?compare=1` to a report URL to show the 2026-vs-2027 zone switch (admin use).
 - **Zone:** 2027 NCAA NSI Static Zone. Ball-center limits ±10.97" wide, 16.05"–42.35" tall. 1" buffer split ½" inside / ½" outside each edge.
 - **Calls scored:** StrikeCalled, BallCalled, and BallinDirt (counted as a called ball). HitByPitch is listed for review but not scored. BallIntentional is not scored.
 - **Adjusted accuracy:** a call inside the buffer band is never a miss.
@@ -32,8 +35,8 @@ First-time setup (Cloudflare dashboard):
 
 ## Roadmap
 
-1. Home page live on myplatereport.com ← *current*
-2. Admin upload page (protected by Cloudflare Access): CSV upload, umpire name + email
+1. Home page live on myplatereport.com
+2. Admin upload page with live report preview ← *current* (protect `/admin` with Cloudflare Access)
 3. D1 database for umpires, games and pitches; R2 storage for PDFs
 4. Email delivery (Resend) with link + PDF
 5. Admin staff trend report every few weeks
