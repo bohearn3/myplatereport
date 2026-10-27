@@ -1,0 +1,13 @@
+{
+  "name": "myplatereport",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Postgame strike zone reports for plate umpires, built from Trackman data.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

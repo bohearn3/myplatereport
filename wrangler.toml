@@ -1,0 +1,12 @@
+name = "myplatereport"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+# Static pages (home page, report viewer, admin upload page) live in ./public
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Coming next, once they're created in the Cloudflare dashboard:
+# [[d1_databases]]   -> umpires, games, pitches (season trends)
+# [[r2_buckets]]     -> report PDFs

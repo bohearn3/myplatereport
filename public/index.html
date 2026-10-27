@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MyPlateReport</title>
+<meta name="description" content="Postgame strike zone reports for collegiate plate umpires.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F3F6F9; --ink:#0D1117; --muted:#5A6573; --line:#D9E1E8; --powder:#63A6DA; --deep:#1D5E8F; --head:#0D1117; --headInk:#F3F6F9;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{--bg:#0B0E12;--ink:#E7EDF3;--muted:#93A0AE;--line:#26303B;--deep:#7FB9E6;--head:#000;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.5}
+.band{background:var(--head);color:var(--headInk)}
+.wrap{max-width:960px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.top{display:flex;align-items:center;gap:14px;padding-block:18px}
+.mark{width:44px;height:44px;border-radius:9px;background:var(--powder);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:1.5rem;color:#000}
+.name{font-family:var(--f-display);font-weight:800;font-size:1.5rem;letter-spacing:.02em;text-transform:uppercase}
+.hero{padding-block:56px 64px}
+.eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:#9fb4c7;font-weight:600}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(2.6rem,7vw,4.6rem);line-height:.95;text-transform:uppercase;margin:10px 0 18px;text-wrap:balance}
+h1 span{color:var(--powder)}
+.hero p{max-width:56ch;color:#c5d2de;font-size:1.1rem;margin:0}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;padding-block:44px}
+.grid h2{font-family:var(--f-display);font-weight:800;font-size:1.35rem;text-transform:uppercase;margin:0 0 6px}
+.grid p{margin:0;color:var(--muted)}
+.grid div{border-top:3px solid var(--powder);padding-top:14px}
+footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--muted);font-size:.85rem}
+@media (max-width:720px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="wrap">
+    <div class="top"><div class="mark" aria-hidden="true">BB</div><div class="name">MyPlateReport</div></div>
+    <div class="hero">
+      <div class="eyebrow">Collegiate Umpires</div>
+      <h1>Every call. <span>Every edge.</span> Every game.</h1>
+      <p>Postgame strike zone reports for plate umpires, built from Trackman pitch data and scored on the 2027 NCAA National Strike Zone Initiative static zone.</p>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="grid">
+    <div><h2>Your zone, to scale</h2><p>Every taken pitch from the umpire's view, with raw and adjusted accuracy and a 1" buffer split across each edge.</p></div>
+    <div><h2>Your called zone</h2><p>A perceived strike zone built from your own calls, measured edge by edge against the rulebook.</p></div>
+    <div><h2>Your trends</h2><p>Game-over-game trends from your own games, delivered by email with an interactive report and a PDF.</p></div>
+  </section>
+</main>
+<footer><div class="wrap">Reports are sent directly to assigned umpires. Questions about your report? Contact your crew coordinator.</div></footer>
+</body>
+</html>

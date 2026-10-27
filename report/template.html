@@ -1,0 +1,554 @@
+<title>O'Hearn Plate Report 3-22-26</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: a plate-meeting scorecard. Black BB header band, then stacked sections that read top-down:
+   verdict -> zone -> where calls went -> fairness -> misses -> review -> season trends. */
+:root{
+  --bg:#F3F6F9; --surface:#FFFFFF; --ink:#0D1117; --muted:#5A6573; --line:#D9E1E8;
+  --powder:#63A6DA; --deep:#1D5E8F; --strike:#1D5E8F; --ballc:#8C98A5;
+  --good:#1F8A5B; --miss:#D1453B; --warn:#C7791A; --band:rgba(99,166,218,.22); --heat:99,166,218;
+  --head:#0D1117; --headInk:#F3F6F9;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B0E12; --surface:#141A21; --ink:#E7EDF3; --muted:#93A0AE; --line:#26303B;
+  --powder:#63A6DA; --deep:#7FB9E6; --strike:#7FB9E6; --ballc:#6E7B88;
+  --good:#3DBB83; --miss:#F0675C; --warn:#E6A040; --band:rgba(99,166,218,.20); --heat:99,166,218;
+  --head:#000000; --headInk:#E7EDF3; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B0E12; --surface:#141A21; --ink:#E7EDF3; --muted:#93A0AE; --line:#26303B;
+  --powder:#63A6DA; --deep:#7FB9E6; --strike:#7FB9E6; --ballc:#6E7B88;
+  --good:#3DBB83; --miss:#F0675C; --warn:#E6A040; --band:rgba(99,166,218,.20); --heat:99,166,218;
+  --head:#000000; --headInk:#E7EDF3; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0}
+h2{font-family:var(--f-display);font-weight:800;font-size:1.7rem;letter-spacing:.01em;text-transform:uppercase;line-height:1}
+.eyebrow{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono)}
+
+/* header */
+header.band{background:var(--head);color:var(--headInk)}
+header.band .wrap{display:flex;gap:20px;align-items:center;padding-block:22px;flex-wrap:wrap}
+.mark{width:58px;height:58px;flex:none;border-radius:10px;background:var(--powder);display:grid;place-items:center}
+.mark span{font-family:var(--f-display);font-weight:800;font-size:2rem;color:#000;letter-spacing:-.02em}
+.hgroup{flex:1;min-width:0}
+.hgroup .eyebrow{color:#9fb4c7}
+.hgroup h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.7rem,4vw,2.5rem);line-height:1;text-transform:uppercase}
+.hgroup .sub{color:#c5d2de;margin-top:4px}
+.zonechip{border:1px solid var(--powder);color:var(--powder);border-radius:999px;padding:4px 12px;font-size:.78rem;font-weight:600;white-space:nowrap}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding-block:14px;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{font:inherit;font-size:.82rem;font-weight:600;border:0;background:transparent;color:var(--muted);padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg button:focus-visible,.row-btn:focus-visible{outline:2px solid var(--powder);outline-offset:2px}
+.controls .lbl{font-size:.78rem;color:var(--muted);font-weight:600}
+
+section{padding-block:30px;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.sec-head p{margin:4px 0 0;color:var(--muted);max-width:62ch}
+
+/* verdict */
+.verdict{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:28px;align-items:center}
+.ring{position:relative;width:100%;max-width:260px;aspect-ratio:1;margin:0 auto}
+.ring svg{width:100%;height:100%}
+.ring .c{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ring .big{font-family:var(--f-display);font-weight:800;font-size:3.6rem;line-height:.9}
+.ring .cap{font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.lede{font-size:1.12rem;max-width:58ch;margin:0 0 18px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.tile .v{font-family:var(--f-display);font-weight:800;font-size:2rem;line-height:1}
+.tile .k{font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:6px}
+.tile .d{font-size:.78rem;color:var(--muted);margin-top:6px}
+.delta{font-weight:700}
+.delta.up{color:var(--good)} .delta.down{color:var(--warn)} .delta.flat{color:var(--muted)}
+
+/* zone charts */
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.panel h3{font-size:1rem;font-weight:700}
+.panel .ph{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.zsvg{width:100%;height:auto;display:block}
+.zsvg text{font-family:var(--f-body);fill:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:5px}
+.lg-s{background:var(--strike)} .lg-b{border:2px solid var(--ballc)} .lg-ms{background:var(--miss)} .lg-mb{border:2.5px solid var(--miss)}
+.lg-band{background:var(--band);border-radius:2px!important}
+.exp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.exp div{border-top:2px solid var(--line);padding-top:6px;min-width:0}
+.exp b{display:block;font-family:var(--f-mono);font-size:1rem}
+.exp span{font-size:.74rem;color:var(--muted)}
+
+/* bars */
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:.86rem}
+.bar .t{height:8px;border-radius:4px;background:var(--line);grid-column:1/-1;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--deep);border-radius:4px}
+.bar .t i.lo{background:var(--warn)}
+.bar .m{color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* fairness */
+.fair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.team h3{font-family:var(--f-display);font-weight:800;font-size:1.4rem;text-transform:uppercase}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;margin-top:10px;font-size:.9rem}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.balance{margin-top:16px;padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line)}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.85rem}
+th,td{padding:8px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+tr.hl td{background:var(--band)}
+.row-btn{cursor:pointer}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.74rem;font-weight:700}
+.pill.ms{background:color-mix(in srgb,var(--miss) 16%,transparent);color:var(--miss)}
+.pill.ok{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.pill.fl{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.nt{background:var(--line);color:var(--muted)}
+
+/* review */
+.hbps{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.hbp{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.hbp .meta{font-size:.84rem}
+.hbp .meta b{display:block;font-size:.95rem}
+.flags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+
+/* trends */
+.trends{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tr{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.tr .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tr .k{font-size:.8rem;font-weight:700}
+.arrow{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none}
+.arrow svg{width:16px;height:16px}
+.arrow.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.arrow.bad{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.arrow.flat{background:var(--line);color:var(--muted)}
+.tr .v{font-family:var(--f-display);font-weight:800;font-size:1.9rem;line-height:1}
+.tr .s{font-size:.76rem;color:var(--muted)}
+.spark{width:100%;height:40px}
+
+footer{padding-block:28px 40px;color:var(--muted);font-size:.82rem}
+footer ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;max-width:90ch}
+.printonly{display:none}
+
+@media (max-width:860px){
+  .verdict{grid-template-columns:1fr}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .charts,.fair{grid-template-columns:1fr}
+  .grid3{grid-template-columns:1fr}
+  .trends{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:no-preference){ .ring circle.val{transition:stroke-dashoffset .6s ease} }
+
+@media print{
+  @page{size:Letter;margin:.45in}
+  :root{--bg:#FFFFFF;--surface:#FFFFFF;--ink:#0D1117;--muted:#4F5A66;--line:#D9E1E8;--deep:#1D5E8F;--strike:#1D5E8F;--ballc:#8C98A5;--good:#1F8A5B;--miss:#D1453B;--warn:#C7791A;--band:rgba(99,166,218,.22);--head:#0D1117;--headInk:#F3F6F9;color-scheme:light}
+  body{font-size:11.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap{max-width:none;padding-left:0;padding-right:0}
+  header.band .wrap{padding:14px 18px}
+  .controls,.screenonly{display:none!important}
+  .printonly{display:block}
+  section{padding-block:14px;break-inside:avoid}
+  section.allow-break{break-inside:auto}
+  .pb{break-before:page}
+  h2{font-size:1.3rem}
+  .ring{max-width:170px}.ring .big{font-size:2.6rem}
+  .tile .v,.tr .v{font-size:1.5rem}
+  .panel,.tile,.tr,.hbp{break-inside:avoid}
+  tr{break-inside:avoid}
+  .verdict{grid-template-columns:200px 1fr}
+  .tiles{grid-template-columns:repeat(4,1fr)}
+  .charts,.fair{grid-template-columns:1fr 1fr}
+  .grid3{grid-template-columns:repeat(3,1fr)}
+  .trends{grid-template-columns:repeat(4,1fr)}
+  .hbps{grid-template-columns:repeat(3,1fr)}
+  th,td{padding:4px 6px}
+  table{font-size:9.5px}
+  .np{display:none}
+  section{break-inside:auto}
+  .ring .cap{font-size:.5rem;letter-spacing:.06em}
+  .charts .zsvg{max-height:3.6in;width:auto;margin:0 auto}
+  .sec-head{break-after:avoid}
+  .legend{margin-top:4px}
+  .lede{font-size:.95rem}
+  .hbp{grid-template-columns:70px minmax(0,1fr);padding:8px}
+  .bar{font-size:.8rem}
+  .grid3 .panel{padding:12px}
+  .bars{gap:7px}
+}
+</style>
+
+<header class="band">
+  <div class="wrap">
+    <div class="mark" aria-label="BB logo placeholder"><span>BB</span></div>
+    <div class="hgroup">
+      <div class="eyebrow">Collegiate Umpires · Plate Umpire Report</div>
+      <h1 id="h-ump">Plate Umpire</h1>
+      <div class="sub" id="h-game"></div>
+    </div>
+    <div class="zonechip" id="h-zone"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="controls">
+    <span class="lbl">Zone standard</span>
+    <div class="seg" id="c-zone">
+      <button type="button" id="z-nsi2027" data-v="nsi2027" aria-pressed="true">2027 NSI Static</button>
+      <button type="button" id="z-legacy2026" data-v="legacy2026" aria-pressed="false">2026 Zone</button>
+    </div>
+    <span class="lbl" style="margin-left:auto" id="c-src"></span>
+  </div>
+
+  <section id="s-verdict">
+    <div class="verdict">
+      <div class="ring" id="ring"></div>
+      <div>
+        <p class="lede" id="lede"></p>
+        <div class="tiles" id="tiles"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="s-zone">
+    <div class="sec-head">
+      <div><div class="eyebrow">Called pitches · umpire's view</div><h2>Your Zone</h2>
+      <p>Every taken pitch, drawn to scale: each dot is a baseball's width. The shaded band is the buffer, where either call counts as correct.</p></div>
+      <div class="screenonly" style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="seg" id="c-side"><button type="button" id="sd-all" data-v="all" aria-pressed="true">All batters</button><button type="button" id="sd-L" data-v="Left" aria-pressed="false">LHB</button><button type="button" id="sd-R" data-v="Right" aria-pressed="false">RHB</button></div>
+        <div class="seg" id="c-team"></div>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="panel">
+        <div class="ph"><h3>Calls vs. the rulebook zone</h3><span class="eyebrow" id="z-count"></span></div>
+        <div id="zchart"></div>
+        <div class="legend"><span><i class="lg-s"></i>Called strike</span><span><i class="lg-b"></i>Called ball</span><span><i class="lg-ms"></i>Missed: ball called strike</span><span><i class="lg-mb"></i>Missed: strike called ball</span><span><i class="lg-band"></i>Buffer</span></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h3>Perceived strike zone</h3>
+          <div class="seg screenonly" id="c-pz"><button type="button" id="pz-game" data-v="game" aria-pressed="true">This game</button><button type="button" id="pz-season" data-v="season" aria-pressed="false">Last 4 games</button></div></div>
+        <div id="pzchart"></div>
+        <div class="legend"><span><i style="background:rgba(var(--heat),.85);border-radius:2px"></i>More likely called a strike</span><span>Solid line: where you called strikes half the time</span><span>Dashed: rulebook zone</span></div>
+        <div class="exp" id="pzexp"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="s-break" class="pb">
+    <div class="sec-head"><div><div class="eyebrow">Where the calls went</div><h2>Tough Calls</h2>
+      <p id="edge-lede"></p></div></div>
+    <div class="grid3">
+      <div class="panel"><h3>Edge pitches by location</h3><div class="bars" id="b-region" style="margin-top:12px"></div></div>
+      <div class="panel"><h3>By count</h3><div class="bars" id="b-count" style="margin-top:12px"></div></div>
+      <div class="panel"><h3>By batter and pitch type</h3><div class="bars" id="b-side" style="margin-top:12px"></div><div class="bars" id="b-type" style="margin-top:16px"></div></div>
+    </div>
+  </section>
+
+  <section id="s-fair">
+    <div class="sec-head"><div><div class="eyebrow">Consistency for both dugouts</div><h2>Home vs. Visitor</h2>
+      <p>The same zone for both pitching staffs. Edge strike rate is the share of pitches within 2" of the zone edge that were called strikes.</p></div></div>
+    <div class="fair" id="fair"></div>
+    <div class="balance" id="balance"></div>
+  </section>
+
+  <section id="s-miss" class="allow-break">
+    <div class="sec-head"><div><div class="eyebrow">Adjusted misses</div><h2>Missed Calls</h2>
+      <p class="screenonly">Select a row to find the pitch on the zone chart.</p></div></div>
+    <div class="tw"><table id="t-miss"></table></div>
+  </section>
+
+  <section id="s-review" class="pb">
+    <div class="sec-head"><div><div class="eyebrow">For postgame review</div><h2>Review: Hit by Pitch</h2>
+      <p>Every hit batter in the game, with flags for anything worth a second look. These pitches are not part of your accuracy score.</p></div></div>
+    <div class="hbps" id="hbps"></div>
+  </section>
+
+  <section id="s-trend">
+    <div class="sec-head"><div><div class="eyebrow">Season trends</div><h2>Your Trends</h2>
+      <p id="trend-lede"></p></div></div>
+    <div class="trends" id="trends"></div>
+  </section>
+
+  <section id="s-log" class="screenonly allow-break">
+    <div class="sec-head"><div><div class="eyebrow">Every pitch</div><h2>Pitch Log</h2></div>
+      <div class="seg" id="c-log"><button type="button" id="lg-all" data-v="all" aria-pressed="true">All pitches</button><button type="button" id="lg-taken" data-v="taken" aria-pressed="false">Taken pitches</button><button type="button" id="lg-miss" data-v="miss" aria-pressed="false">Misses</button></div></div>
+    <div class="tw" style="max-height:560px;overflow:auto"><table id="t-log"></table></div>
+  </section>
+
+  <footer>
+    <div class="eyebrow">How this report is scored</div>
+    <ul id="method"></ul>
+  </footer>
+</div>
+
+<script>/*ENGINE*/</script>
+<script>/*DATA*/</script>
+<script>
+(function(){
+const E = window.UmpEngine, D = window.REPORT_DATA;
+const TEAMS = {PAC_TIG:['Pacific','Pacific Tigers'],SEA_RED:['Seattle U','Seattle University Redhawks'],SAN_TOR:['San Diego','San Diego Toreros'],ORE_BEA:['Oregon State','Oregon State Beavers'],FRE_BUL:['Fresno State','Fresno State Bulldogs'],BYU_COU:['BYU','BYU Cougars'],STM_GAE:["Saint Mary's","Saint Mary's Gaels"]};
+const tn = c => (TEAMS[c]||[c])[0], tfull = c => (TEAMS[c]||[c,c])[1];
+const P = (v,d=1) => v==null ? '–' : (v*100).toFixed(d)+'%';
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+const shortDate = s => { const [y,m,d]=s.split('-'); return `${+m}/${+d}/${y.slice(2)}`; };
+const nameFL = n => { if(!n) return ''; const [l,f]=n.split(',').map(s=>s.trim()); return f? `${f} ${l}` : n; };
+
+let state = {zone:'nsi2027', side:'all', team:'all', pz:'game', log:'all', hl:null};
+try { const z = localStorage.getItem('bb-zone'); if (z && E.ZONES[z]) state.zone = z; } catch(e) {}
+const cache = {};
+function analyses(zid){
+  if (cache[zid]) return cache[zid];
+  const Z = E.ZONES[zid];
+  const games = D.games.map(g => E.analyzeGame(g, D.fields, Z));
+  const cur = games.find(a => a.meta.file === D.currentFile);
+  const trend = games.map(a => E.trendPoint(a, Z));
+  return cache[zid] = {Z, games, cur, trend, league: D.league[zid]};
+}
+
+/* ---------- zone chart ---------- */
+const VX0=-30, VX1=30, VY0=0, VY1=62;
+const sx = x => x - VX0, sy = y => VY1 - y;
+function boxPath(b){ return `M${sx(-b.x)},${sy(b.top)}H${sx(b.x)}V${sy(b.bot)}H${sx(-b.x)}Z`; }
+function frame(Z, inner){
+  let g = '';
+  for (let x=-24; x<=24; x+=6) g += `<line x1="${sx(x)}" x2="${sx(x)}" y1="${sy(VY1)}" y2="${sy(6)}" stroke="var(--line)" stroke-width=".15"/>`;
+  for (let y=12; y<=60; y+=6) g += `<line x1="${sx(-27)}" x2="${sx(27)}" y1="${sy(y)}" y2="${sy(y)}" stroke="var(--line)" stroke-width=".15"/>`;
+  for (let y=12; y<=60; y+=12) g += `<text x="${sx(-28.6)}" y="${sy(y)+0.7}" font-size="2" text-anchor="middle">${y}"</text>`;
+  // home plate, umpire's view (17" wide)
+  g += `<path d="M${sx(-8.5)},${sy(4.6)}H${sx(8.5)}V${sy(3.2)}L${sx(0)},${sy(1.4)}L${sx(-8.5)},${sy(3.2)}Z" fill="var(--surface)" stroke="var(--muted)" stroke-width=".3"/>`;
+  g += `<text x="${sx(-25)}" y="${sy(2.2)}" font-size="2.1">3B side</text><text x="${sx(25)}" y="${sy(2.2)}" font-size="2.1" text-anchor="end">1B side</text>`;
+  g += inner || '';
+  return g;
+}
+function zoneSVG(ps, Z, opts={}){
+  const band = `<path d="${boxPath(Z.outer)} ${boxPath(Z.inner)}" fill="var(--band)" fill-rule="evenodd"/>`;
+  const zr = `<path d="${boxPath(Z.zone)}" fill="none" stroke="var(--ink)" stroke-width=".35"/>`;
+  const r = opts.r || 1.47;
+  const order = [...ps].sort((a,b)=> (a.adjOK===false) - (b.adjOK===false));
+  let dots = '';
+  for (const p of order){
+    if (!p.has || !p.dec) continue;
+    if (p.y < VY0+1 || p.y > VY1 || Math.abs(p.x) > 29) continue;
+    const miss = p.adjOK === false, hl = state.hl === p.no;
+    const cx = sx(p.x).toFixed(2), cy = sy(p.y).toFixed(2);
+    if (p.dec === 'S') dots += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${miss?'var(--miss)':'var(--strike)'}" fill-opacity="${miss?1:.85}" stroke="var(--surface)" stroke-width=".25"/>`;
+    else dots += `<circle cx="${cx}" cy="${cy}" r="${r-(miss?.45:.25)}" fill="var(--surface)" fill-opacity=".4" stroke="${miss?'var(--miss)':'var(--ballc)'}" stroke-width="${miss?.9:.45}"/>`;
+    if (miss && opts.labels) dots += `<text x="${(+cx + r + .5).toFixed(2)}" y="${(+cy + .8).toFixed(2)}" font-size="2" font-weight="700" style="fill:var(--miss)">${p.no}</text>`;
+    if (hl) dots += `<circle cx="${cx}" cy="${cy}" r="${r+1.2}" fill="none" stroke="var(--ink)" stroke-width=".4"/>`;
+  }
+  return `<svg class="zsvg" viewBox="0 0 ${VX1-VX0} ${VY1-VY0}" role="img" aria-label="Strike zone chart of called pitches">${frame(Z, band + zr + dots)}</svg>`;
+}
+function pzSVG(pz, Z, overlay){
+  // heat map painted on a small canvas, then scaled smoothly into the chart
+  let cells = '';
+  try {
+    const cv = document.createElement('canvas'); cv.width = pz.nx; cv.height = pz.ny;
+    const cx = cv.getContext('2d'), img = cx.createImageData(pz.nx, pz.ny);
+    for (let j=0;j<pz.ny;j++) for (let i=0;i<pz.nx;i++){
+      const v = pz.grid[j*pz.nx+i], o = ((pz.ny-1-j)*pz.nx + i)*4;
+      img.data[o]=99; img.data[o+1]=166; img.data[o+2]=218; img.data[o+3] = v < .06 ? 0 : Math.round(v*.85*255);
+    }
+    cx.putImageData(img, 0, 0);
+    const x = sx(pz.x0 - pz.step/2), y = sy(pz.y0 + (pz.ny-.5)*pz.step);
+    cells = `<image href="${cv.toDataURL()}" x="${x}" y="${y}" width="${pz.nx*pz.step}" height="${pz.ny*pz.step}" preserveAspectRatio="none" style="image-rendering:auto"/>`;
+  } catch(e) {}
+  // marching squares at the 50% level, linear interpolation along cell edges
+  const contour = g => {
+    const T = .5, v = (i,j) => g.grid[j*g.nx+i];
+    const X = i => sx(g.x0 + i*g.step), Y = j => sy(g.y0 + j*g.step);
+    let d = '';
+    for (let j=0;j<g.ny-1;j++) for (let i=0;i<g.nx-1;i++){
+      const a=v(i,j), b=v(i+1,j), c=v(i+1,j+1), e=v(i,j+1);
+      const pts = [];
+      const lerp = (p,q) => (T-p)/(q-p);
+      if ((a>=T)!==(b>=T)) pts.push([X(i+lerp(a,b)), Y(j)]);
+      if ((b>=T)!==(c>=T)) pts.push([X(i+1), Y(j+lerp(b,c))]);
+      if ((e>=T)!==(c>=T)) pts.push([X(i+lerp(e,c)), Y(j+1)]);
+      if ((a>=T)!==(e>=T)) pts.push([X(i), Y(j+lerp(a,e))]);
+      for (let k=0;k+1<pts.length;k+=2) d += `M${pts[k][0].toFixed(2)},${pts[k][1].toFixed(2)}L${pts[k+1][0].toFixed(2)},${pts[k+1][1].toFixed(2)}`;
+    }
+    return d;
+  };
+  const zr = `<path d="${boxPath(Z.zone)}" fill="none" stroke="var(--ink)" stroke-width=".35" stroke-dasharray="1 .8"/>`;
+  const main = `<path d="${contour(pz)}" fill="none" stroke="var(--deep)" stroke-width=".7" stroke-linecap="round"/>`;
+  return `<svg class="zsvg" viewBox="0 0 ${VX1-VX0} ${VY1-VY0}" role="img" aria-label="Perceived strike zone heat map">${frame(Z, cells + zr + main)}</svg>`;
+}
+
+/* ---------- pieces ---------- */
+function ring(v){
+  const C = 2*Math.PI*44, off = C*(1-(v||0));
+  return `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="var(--line)" stroke-width="8"/>
+  <circle class="val" cx="50" cy="50" r="44" fill="none" stroke="var(--powder)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}" transform="rotate(-90 50 50)"/></svg>
+  <div class="c"><div><div class="big num">${P(v)}</div><div class="cap">Adjusted accuracy</div></div></div>`;
+}
+function deltaTxt(v, base, better='up', unit='pct'){
+  if (v==null || base==null) return '';
+  const d = v - base, mag = unit==='pct' ? Math.abs(d*100).toFixed(1)+' pts' : Math.abs(d).toFixed(1);
+  if ((unit==='pct' && Math.abs(d) < .0025) || (unit!=='pct' && Math.abs(d) < .25)) return `<span class="delta flat">Even</span>`;
+  const good = better==='up' ? d>0 : d<0;
+  return `<span class="delta ${good?'up':'down'}">${d>0?'▲':'▼'} ${mag}</span>`;
+}
+function bars(el, rows, opts={}){
+  document.getElementById(el).innerHTML = rows.map(r => `<div class="bar"><span>${esc(r.key)}</span><span class="m">${r.ok}/${r.n} · <b>${P(r.acc,0)}</b></span><div class="t"><i class="${r.acc<.85?'lo':''}" style="width:${(r.acc*100).toFixed(1)}%"></i></div></div>`).join('') || '<span class="m">No pitches</span>';
+}
+const arrowSVG = dir => dir==='up' ? '<svg viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  : dir==='down' ? '<svg viewBox="0 0 16 16"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  : '<svg viewBox="0 0 16 16"><path d="M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+function spark(vals, cls){
+  const w=140,h=40,pad=4; const mn=Math.min(...vals), mx=Math.max(...vals); const rng = mx-mn || 1;
+  const pts = vals.map((v,i)=>[pad + i*(w-2*pad)/Math.max(vals.length-1,1), h-pad - (v-mn)/rng*(h-2*pad)]);
+  const line = pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join('');
+  const area = line + `L${pts[pts.length-1][0].toFixed(1)},${h}L${pts[0][0].toFixed(1)},${h}Z`;
+  const last = pts[pts.length-1];
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><line x1="0" x2="${w}" y1="${h-pad}" y2="${h-pad}" stroke="var(--line)" stroke-width="1"/><path d="${area}" fill="var(--band)"/><path d="${line}" fill="none" stroke="var(--deep)" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="${last[0]}" cy="${last[1]}" r="3.5" fill="var(--powder)" stroke="var(--surface)" stroke-width="1.5"/></svg>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const A = analyses(state.zone), {Z, cur, league} = A, s = cur.summary, m = cur.meta;
+  const me = A.trend, curIdx = A.games.indexOf(cur), prev = me.slice(0, curIdx);
+  const prevAvg = k => prev.length ? prev.reduce((a,p)=>a+(p[k]??0),0)/prev.length : null;
+
+  document.getElementById('h-ump').textContent = m.umpire;
+  document.getElementById('h-game').textContent = `${tfull(m.away)} at ${tfull(m.home)} · ${fmtDate(m.date)} · ${m.stadium.replace(/([a-z])([A-Z])/g,'$1 $2')}`;
+  document.getElementById('h-zone').textContent = Z.label;
+  document.getElementById('c-src').textContent = `Trackman · ${cur.total} pitches`;
+  document.querySelectorAll('#c-zone button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===state.zone));
+
+  // verdict
+  document.getElementById('ring').innerHTML = ring(s.adj);
+  const pAdj = prevAvg('adj'), vsMe = pAdj==null ? null : s.adj - pAdj;
+  document.getElementById('lede').innerHTML = `You got <b>${s.adjCorrect} of ${s.decisions}</b> calls right on the ${Z.short} zone, with <b>${s.missN} missed call${s.missN===1?'':'s'}</b> after the buffer: ${s.scb} strike${s.scb===1?'':'s'} called a ball and ${s.bcs} ball${s.bcs===1?'':'s'} called a strike.` +
+    (vsMe==null ? '' : ` That is <b>${Math.abs(vsMe*100).toFixed(1)} points ${vsMe>=0?'above':'below'}</b> your own average of ${P(pAdj)}.`);
+  const tiles = [
+    ['Raw accuracy', P(s.raw), `${s.rawCorrect}/${s.decisions} with no buffer`, deltaTxt(s.raw, prevAvg('raw'))],
+    ['In-zone accuracy', P(s.inZoneAcc), `${s.inZoneOK}/${s.inZoneN} strikes called strikes`, deltaTxt(s.inZoneAcc, prevAvg('inZoneAcc'))],
+    ['Out-of-zone accuracy', P(s.outZoneAcc), `${s.outZoneOK}/${s.outZoneN} balls called balls`, deltaTxt(s.outZoneAcc, prevAvg('outZoneAcc'))],
+    ['Edge accuracy', P(s.edgeAcc), `${s.edgeOK}/${s.edgeN} within 2" of the edge`, deltaTxt(s.edgeAcc, prevAvg('edgeAcc'))]
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(t => `<div class="tile"><div class="k">${t[0]}</div><div class="v num">${t[1]}</div><div class="d">${t[2]}</div>${t[3]?`<div class="d">${t[3]} vs your avg</div>`:''}</div>`).join('');
+
+  // zone chart
+  const teamBtns = [['all','Both teams'],[m.home, tn(m.home)+' pitching'],[m.away, tn(m.away)+' pitching']];
+  document.getElementById('c-team').innerHTML = teamBtns.map(([v,l],i)=>`<button type="button" id="tm-${i}" data-v="${esc(v)}" aria-pressed="${state.team===v}">${esc(l)}</button>`).join('');
+  document.querySelectorAll('#c-side button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===state.side));
+  const filt = cur.pitches.filter(p => (state.side==='all'||p.bSide===state.side) && (state.team==='all'||p.pTeam===state.team));
+  const fs = E.summarize(filt);
+  document.getElementById('z-count').textContent = `${fs.decisions} calls · ${fs.missN} missed`;
+  document.getElementById('zchart').innerHTML = zoneSVG(filt, Z, {labels:true});
+
+  // perceived
+  document.querySelectorAll('#c-pz button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===state.pz));
+  const pzPs = state.pz==='season' ? A.games.flatMap(g=>g.pitches) : cur.pitches;
+  const pzF = pzPs.filter(p => (state.side==='all'||p.bSide===state.side) && (state.team==='all'||p.pTeam===state.team));
+  const pz = E.perceived(pzF, Z, {step:1});
+  document.getElementById('pzchart').innerHTML = pzSVG(pz, Z);
+  const ex = (v, wide, tight) => `${v>=0?'+':'−'}${Math.abs(v).toFixed(1)}"`;
+  const word = (v, a, b) => Math.abs(v) < .3 ? 'on the line' : v>0 ? a : b;
+  document.getElementById('pzexp').innerHTML = [
+    ['Top', pz.delta.top, 'called high', 'tight up top'],
+    ['Bottom', pz.delta.bot, 'called low', 'tight at knees'],
+    ['3B side', pz.delta.left, 'wide', 'tight'],
+    ['1B side', pz.delta.right, 'wide', 'tight']
+  ].map(([k,v,a,b]) => `<div><span>${k}</span><b>${ex(v)}</b><span>${word(v,a,b)}</span></div>`).join('') +
+  `<div style="grid-column:1/-1;border-top:0;padding-top:2px"><span>Zone size: <b style="display:inline;font-size:.85rem">${Math.round(pz.areaRatio*100)}%</b> of the rulebook zone, from ${pz.n} calls</span></div>`;
+
+  // breakdowns
+  document.getElementById('edge-lede').textContent = `${s.edgeN} pitches crossed within 2" of the zone edge. You got ${s.edgeOK} right (${P(s.edgeAcc)}).` + (prevAvg('edgeAcc')==null ? '' : ` Your average on edge pitches is ${P(prevAvg('edgeAcc'))}.`);
+  bars('b-region', cur.br.region); bars('b-count', cur.br.count); bars('b-side', cur.br.side); bars('b-type', cur.br.type.slice(0,5));
+
+  // fairness
+  document.getElementById('fair').innerHTML = cur.fair.map((t,i) => `<div class="panel team"><div class="eyebrow">${i===0?'Home':'Visitor'} pitching</div><h3>${esc(tfull(t.team))}</h3>
+    <dl class="kv"><dt>Calls</dt><dd>${t.decisions}</dd><dt>Adjusted accuracy</dt><dd>${P(t.adj)}</dd><dt>Edge strike rate</dt><dd>${P(t.edgeStrikeRate,0)} <span style="color:var(--muted);font-weight:500">(${Math.round((t.edgeStrikeRate||0)*t.edgeN)}/${t.edgeN})</span></dd>
+    <dt>Misses that helped their pitchers</dt><dd>${t.helped}</dd><dt>Misses that hurt their pitchers</dt><dd>${t.hurt}</dd></dl></div>`).join('');
+  const net = t => t.helped - t.hurt;
+  const [h, a] = cur.fair, diff = net(h) - net(a);
+  document.getElementById('balance').innerHTML = Math.abs(diff) <= 1
+    ? `<b>Balanced.</b> Missed calls split close to evenly: net ${net(h)>=0?'+':''}${net(h)} for ${tn(h.team)} pitchers, ${net(a)>=0?'+':''}${net(a)} for ${tn(a.team)} pitchers.`
+    : `<b>Leaned ${diff>0?tn(h.team):tn(a.team)}.</b> Missed calls netted ${net(h)>=0?'+':''}${net(h)} for ${tn(h.team)} pitchers and ${net(a)>=0?'+':''}${net(a)} for ${tn(a.team)} pitchers, a ${Math.abs(diff)}-call difference.`;
+
+  // misses table
+  const misses = cur.pitches.filter(p => p.adjOK === false);
+  document.getElementById('t-miss').innerHTML = `<thead><tr><th class="r">Pitch</th><th>Inning</th><th>Count</th><th>Pitcher</th><th>Batter</th><th>Call</th><th>Pitch type</th><th class="r np">Velo</th><th>Location</th><th class="r">Off edge</th><th>Helped</th></tr></thead><tbody>` +
+    (misses.map(p => `<tr class="row-btn ${state.hl===p.no?'hl':''}" data-no="${p.no}" tabindex="0"><td class="r">${p.no}</td><td>${p.half==='Top'?'T':'B'}${p.inning}</td><td class="num">${p.balls}-${p.strikes}</td><td>${esc(nameFL(p.pitcher))}</td><td>${esc(nameFL(p.batter))} <span style="color:var(--muted)">(${p.bSide[0]})</span></td>
+      <td><span class="pill ms">${p.missType==='ballCalledStrike'?'Ball called strike':'Strike called ball'}</span></td><td>${esc(p.type)}</td><td class="r np">${p.velo?p.velo.toFixed(1):'–'}</td><td>${p.region}</td>
+      <td class="r mono">${Math.abs(p.dist).toFixed(1)}" ${p.dist>0?'outside':'inside'}</td><td>${p.missType==='ballCalledStrike'?tn(p.pTeam)+' pitching':tn(p.bTeam)+' hitting'}</td></tr>`).join('') || `<tr><td colspan="11">No missed calls.</td></tr>`) + '</tbody>';
+
+  // HBP review
+  document.getElementById('hbps').innerHTML = cur.hbp.map(p => `<div class="hbp">${zoneSVG([{...p, dec:'S', adjOK:true}], Z, {r:2.6})}
+    <div class="meta"><b>Pitch ${p.no} · ${p.half==='Top'?'Top':'Bot'} ${p.inning}</b>${esc(nameFL(p.pitcher))} (${tn(p.pTeam)}) to ${esc(nameFL(p.batter))}, ${p.bSide==='Left'?'LHB':'RHB'}
+    <div style="color:var(--muted)">${esc(p.type)} · ${p.velo?p.velo.toFixed(1)+' mph':''} · ${p.balls}-${p.strikes}, ${p.outs} out</div>
+    <div class="flags">${p.flags.length ? p.flags.map(f=>`<span class="pill fl">${esc(f.t)}</span>`).join('') : '<span class="pill nt">No flags</span>'}</div></div></div>`).join('') || '<p>No hit batters this game.</p>';
+
+  // trends
+  const recent = me.slice(0, curIdx+1);
+  const metrics = [
+    ['Adjusted accuracy','adj','up','pct'],['Raw accuracy','raw','up','pct'],['Missed calls','missN','down','n'],['Edge accuracy','edgeAcc','up','pct'],
+    ['In-zone accuracy','inZoneAcc','up','pct'],['Out-of-zone accuracy','outZoneAcc','up','pct'],['Zone size vs. rulebook','zoneSize','close','pct'],['Call balance (gap)','balance','down','n']
+  ];
+  document.getElementById('trend-lede').textContent = `This game compared with your average over your previous ${prev.length} tracked game${prev.length===1?'':'s'} (${prev.map(p=>shortDate(p.date)).join(', ')}). Once a season has 8 or more games, trends compare your last 5 games with your season average.`;
+  document.getElementById('trends').innerHTML = metrics.map(([label,k,better,unit]) => {
+    const v = me[curIdx][k], base = prevAvg(k);
+    let dir='flat', cls='flat', d = base==null?0:v-base;
+    const thr = unit==='pct' ? .005 : .5;
+    if (base!=null && Math.abs(d) >= thr){ dir = d>0?'up':'down';
+      const good = better==='up' ? d>0 : better==='down' ? d<0 : Math.abs(v-1) < Math.abs(base-1);
+      cls = good?'good':'bad'; }
+    const fmt = x => unit==='pct' ? (k==='zoneSize'? Math.round(x*100)+'%' : P(x)) : (Number.isInteger(x)? x : x.toFixed(1));
+    const word = cls==='good' ? 'Trending better' : cls==='bad' ? 'Needs attention' : 'Holding steady';
+    return `<div class="tr"><div class="top"><span class="k">${label}</span><span class="arrow ${cls}" title="${word}">${arrowSVG(dir)}</span></div>
+      <div class="v num">${fmt(v)}</div><div class="s">${word} · your avg ${base==null?'–':fmt(base)}</div>${spark(recent.map(p=>p[k]??0))}</div>`;
+  }).join('');
+
+  // pitch log
+  document.querySelectorAll('#c-log button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===state.log));
+  const logRows = cur.pitches.filter(p => state.log==='all' || (state.log==='taken' && p.dec) || (state.log==='miss' && p.adjOK===false));
+  document.getElementById('t-log').innerHTML = `<thead><tr><th class="r">#</th><th>Inn</th><th>Count</th><th>Outs</th><th>Pitcher</th><th>Batter</th><th>Type</th><th class="r">Velo</th><th>Call</th><th class="r">Side" (Trackman)</th><th class="r">Height"</th><th>Zone</th><th>Result</th></tr></thead><tbody>` +
+    logRows.map(p => `<tr class="${p.dec?'row-btn':''} ${state.hl===p.no?'hl':''}" data-no="${p.no}"><td class="r">${p.no}</td><td>${p.half==='Top'?'T':'B'}${p.inning}</td><td class="num">${p.balls}-${p.strikes}</td><td class="num">${p.outs}</td><td>${esc(nameFL(p.pitcher))}</td><td>${esc(nameFL(p.batter))} (${(p.bSide||'')[0]||''})</td><td>${esc(p.type)}</td><td class="r">${p.velo?p.velo.toFixed(1):''}</td><td>${esc(p.call)}</td>
+      <td class="r mono">${p.has?p.side.toFixed(1):''}</td><td class="r mono">${p.has?p.y.toFixed(1):''}</td><td>${!p.has?'':p.inBand?'Buffer':p.inZone?'In':'Out'}</td>
+      <td>${p.dec? (p.adjOK?'<span class="pill ok">Correct</span>':'<span class="pill ms">Missed</span>') : ''}</td></tr>`).join('') + '</tbody>';
+
+  // method
+  document.getElementById('method').innerHTML = [
+    `Zone: ${esc(Z.label)}. ${esc(Z.note)} Coordinates are the center of the ball from Trackman, shown from the umpire's view.`,
+    `Calls scored: called strikes, called balls and balls in the dirt (scored as called balls, since schools tag them differently). Hit batters${cur.ballIntentional?', intentional balls':''} and swings are not scored.`,
+    `Raw accuracy uses the zone line exactly. Adjusted accuracy does not count a miss when the pitch was inside the buffer.`,
+    `Edge pitch: within ${E.EDGE_BAND}" of the zone edge, inside or outside. "Off edge" is the distance from the zone line to the center of the ball.`,
+    `Perceived zone: your called pitches smoothed with a 3" kernel. The solid line marks where you called strikes half the time. Small samples are noisy; "Last 4 games" gives a steadier picture.`,
+    `Trends and comparisons use only your own tracked games, scored with the same zone and rules. Data file: ${esc(m.file.replace('.xlsm',''))}.`
+  ].map(t=>`<li>${t}</li>`).join('');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('.seg button');
+  if (b){
+    const id = b.parentElement.id, v = b.dataset.v;
+    if (id==='c-zone'){ state.zone=v; try{localStorage.setItem('bb-zone',v);}catch(e){} }
+    else if (id==='c-side') state.side=v; else if (id==='c-team') state.team=v; else if (id==='c-pz') state.pz=v; else if (id==='c-log') state.log=v;
+    render(); return;
+  }
+  const r = e.target.closest('tr.row-btn');
+  if (r){ const n = +r.dataset.no; state.hl = state.hl===n ? null : n; state.side='all'; state.team='all'; render();
+    if (state.hl) document.getElementById('s-zone').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}); }
+});
+document.addEventListener('keydown', e => { if (e.key==='Enter' && e.target.matches('tr.row-btn')) e.target.click(); });
+if (new URLSearchParams(location.search).get('zone')) state.zone = new URLSearchParams(location.search).get('zone');
+render();
+window.__rendered = true;
+})();
+</script>
