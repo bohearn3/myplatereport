@@ -39,7 +39,11 @@ h1 span{color:var(--powder)}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;padding-block:44px}
 .grid h2{font-family:var(--f-display);font-weight:800;font-size:1.35rem;text-transform:uppercase;margin:0 0 6px}
 .grid p{margin:0;color:var(--muted)}
-.grid div{border-top:3px solid var(--powder);padding-top:14px}
+.grid article{min-width:0;display:flex;flex-direction:column;gap:16px}
+.grid .ft{border-top:3px solid var(--powder);padding-top:14px}
+.feat{margin:0;aspect-ratio:1/1;background:#F3F6F9;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:grid;place-items:center;padding:10px}
+.feat img{display:block;width:100%;height:100%;object-fit:contain}
+.feat figcaption{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--muted);font-size:.85rem}
 @media (max-width:720px){.grid{grid-template-columns:1fr}.hero{grid-template-columns:1fr;gap:32px}.hero-photo{margin-right:14px}.hero-photo img{aspect-ratio:4/3;object-position:30% 30%}}
 </style>
@@ -62,9 +66,18 @@ footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--mute
 </header>
 <main class="wrap">
   <section class="grid">
-    <div><h2>Your zone, to scale</h2><p>Every taken pitch from the umpire's view, with raw and adjusted accuracy and a 1" buffer split across each edge.</p></div>
-    <div><h2>Your called zone</h2><p>A perceived strike zone built from your own calls, measured edge by edge against the rulebook.</p></div>
-    <div><h2>Your trends</h2><p>Game-over-game trends from your own games, delivered by email with an interactive report and a PDF.</p></div>
+    <article>
+      <figure class="feat"><img src="/img/feature-zone.png" alt="Sample zone chart: called strikes and balls plotted to scale around the 2027 strike zone, with missed calls in red" width="869" height="900" loading="lazy"></figure>
+      <div class="ft"><h2>Your zone, to scale</h2><p>Every taken pitch from the umpire's view, with raw and adjusted accuracy and a 1" buffer split across each edge.</p></div>
+    </article>
+    <article>
+      <figure class="feat"><img src="/img/feature-called-zone.png" alt="Sample perceived strike zone heat map with the umpire's 50% strike line drawn against the dashed rulebook zone" width="869" height="900" loading="lazy"></figure>
+      <div class="ft"><h2>Your called zone</h2><p>A perceived strike zone built from your own calls, measured edge by edge against the rulebook.</p></div>
+    </article>
+    <article>
+      <figure class="feat"><img src="/img/feature-trends.png" alt="Sample trend cards for adjusted, raw, in-zone and out-of-zone accuracy, missed calls and edge accuracy, each with an arrow and a small trend line" width="876" height="1152" loading="lazy"></figure>
+      <div class="ft"><h2>Your trends</h2><p>Game-over-game trends from your own games, delivered by email with an interactive report and a PDF.</p></div>
+    </article>
   </section>
 </main>
 <footer><div class="wrap">Reports are sent directly to assigned umpires. Questions about your report? Contact your crew coordinator.</div></footer>
