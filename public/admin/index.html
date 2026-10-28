@@ -167,7 +167,7 @@ async function handle(file){
   const A = UmpEngine.analyzeGame(g, parsed.fields, UmpEngine.ZONES.nsi2027);
   $('away-code').textContent = g.AwayTeam || '?'; $('home-code').textContent = g.HomeTeam || '?';
   $('away-name').value = (KNOWN[g.AwayTeam]||[])[1] || g.AwayTeam || ''; $('home-name').value = (KNOWN[g.HomeTeam]||[])[1] || g.HomeTeam || '';
-  $('g-title').textContent = `${$('away-name').value} at ${$('home-name').value}`;
+  $('g-title').textContent = g.HomeTeam && g.HomeTeam===g.AwayTeam ? `${$('home-name').value} intrasquad` : `${$('away-name').value} at ${$('home-name').value}`;
   $('g-meta').textContent = [fmtDate(g.Date), (g.Stadium||'').replace(/([a-z])([A-Z])/g,'$1 $2'), g.Level].filter(Boolean).join(' · ');
   $('g-pitches').textContent = A.total; $('g-calls').textContent = A.summary.decisions;
   $('g-adj').textContent = A.summary.adj==null ? '–' : (A.summary.adj*100).toFixed(1)+'%'; $('g-hbp').textContent = A.hbp.length;

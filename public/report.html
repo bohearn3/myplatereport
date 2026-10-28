@@ -319,6 +319,8 @@ const E = window.UmpEngine; let D = null;
 const TEAMS = {PAC_TIG:['Pacific','Pacific Tigers'],SEA_RED:['Seattle U','Seattle University Redhawks'],SAN_TOR:['San Diego','San Diego Toreros'],ORE_BEA:['Oregon State','Oregon State Beavers'],FRE_BUL:['Fresno State','Fresno State Bulldogs'],BYU_COU:['BYU','BYU Cougars'],STM_GAE:["Saint Mary's","Saint Mary's Gaels"]};
 const team = c => (D && D.teams && D.teams[c]) || TEAMS[c] || [c, c];
 const tn = c => team(c)[0], tfull = c => team(c)[1];
+const gameTitle = m => m.home && m.home === m.away ? `${tfull(m.home)} intrasquad` : `${tfull(m.away)} at ${tfull(m.home)}`;
+const sideShort = (t, m) => t.intra ? (t.team === 'Top' ? 'top-half' : 'bottom-half') : tn(t.team);
 const P = (v,d=1) => v==null ? '–' : (v*100).toFixed(d)+'%';
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDate = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
@@ -444,7 +446,7 @@ function render(){
   const prevAvg = k => prev.length ? prev.reduce((a,p)=>a+(p[k]??0),0)/prev.length : null;
 
   document.getElementById('h-ump').textContent = m.umpire;
-  document.getElementById('h-game').textContent = `${tfull(m.away)} at ${tfull(m.home)} · ${fmtDate(m.date)} · ${m.stadium.replace(/([a-z])([A-Z])/g,'$1 $2')}`;
+  document.getElementById('h-game').textContent = `${gameTitle(m)} · ${fmtDate(m.date)} · ${m.stadium.replace(/([a-z])([A-Z])/g,'$1 $2')}`;
   document.getElementById('h-zone').textContent = Z.label;
   document.getElementById('c-src').textContent = `Trackman · ${cur.total} pitches`;
   document.getElementById('c-zone').hidden = !COMPARE; document.getElementById('c-zone-lbl').hidden = !COMPARE;
@@ -464,10 +466,15 @@ function render(){
   document.getElementById('tiles').innerHTML = tiles.map(t => `<div class="tile"><div class="k">${t[0]}</div><div class="v num">${t[1]}</div><div class="d">${t[2]}</div>${t[3]?`<div class="d">${t[3]} vs your avg</div>`:''}</div>`).join('');
 
   // zone chart
-  const teamBtns = [['all','Both teams'],[m.home, tn(m.home)+' pitching'],[m.away, tn(m.away)+' pitching']];
+  const intra = m.home && m.home === m.away;
+  if (intra && state.team !== 'all' && !state.team.startsWith('__')) state.team = 'all';
+  if (!intra && state.team.startsWith('__')) state.team = 'all';
+  const teamBtns = intra ? [['all','Both halves'],['__top','Top-half pitching'],['__bot','Bottom-half pitching']]
+                         : [['all','Both teams'],[m.home, tn(m.home)+' pitching'],[m.away, tn(m.away)+' pitching']];
+  const teamOk = p => state.team==='all' || (state.team==='__top' ? p.half==='Top' : state.team==='__bot' ? p.half!=='Top' : p.pTeam===state.team);
   document.getElementById('c-team').innerHTML = teamBtns.map(([v,l],i)=>`<button type="button" id="tm-${i}" data-v="${esc(v)}" aria-pressed="${state.team===v}">${esc(l)}</button>`).join('');
   document.querySelectorAll('#c-side button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===state.side));
-  const filt = cur.pitches.filter(p => (state.side==='all'||p.bSide===state.side) && (state.team==='all'||p.pTeam===state.team));
+  const filt = cur.pitches.filter(p => (state.side==='all'||p.bSide===state.side) && teamOk(p));
   const fs = E.summarize(filt);
   document.getElementById('z-count').textContent = `${fs.decisions} calls · ${fs.missN} missed`;
   document.getElementById('zchart').innerHTML = zoneSVG(filt, Z, {labels:true});
@@ -475,7 +482,7 @@ function render(){
   // perceived
   document.querySelectorAll('#c-pz button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v===state.pz));
   const pzPs = state.pz==='season' ? A.games.flatMap(g=>g.pitches) : cur.pitches;
-  const pzF = pzPs.filter(p => (state.side==='all'||p.bSide===state.side) && (state.team==='all'||p.pTeam===state.team));
+  const pzF = pzPs.filter(p => (state.side==='all'||p.bSide===state.side) && teamOk(p));
   const pz = E.perceived(pzF, Z, {step:1});
   document.getElementById('pzchart').innerHTML = pzSVG(pz, Z);
   const ex = (v, wide, tight) => `${v>=0?'+':'−'}${Math.abs(v).toFixed(1)}"`;
@@ -493,21 +500,21 @@ function render(){
   bars('b-region', cur.br.region); bars('b-count', cur.br.count); bars('b-side', cur.br.side); bars('b-type', cur.br.type.slice(0,5));
 
   // fairness
-  document.getElementById('fair').innerHTML = cur.fair.map((t,i) => `<div class="panel team"><div class="eyebrow">${i===0?'Home':'Visitor'} pitching</div><h3>${esc(tfull(t.team))}</h3>
+  document.getElementById('fair').innerHTML = cur.fair.map((t,i) => `<div class="panel team"><div class="eyebrow">${t.intra ? `Pitching in the ${t.team.toLowerCase()} of each inning` : (i===0?'Home':'Visitor') + ' pitching'}</div><h3>${esc(t.intra ? `${t.team}-half pitchers` : tfull(t.team))}</h3>
     <dl class="kv"><dt>Calls</dt><dd>${t.decisions}</dd><dt>Adjusted accuracy</dt><dd>${P(t.adj)}</dd><dt>Edge strike rate</dt><dd>${P(t.edgeStrikeRate,0)} <span style="color:var(--muted);font-weight:500">(${Math.round((t.edgeStrikeRate||0)*t.edgeN)}/${t.edgeN})</span></dd>
     <dt>Misses that helped their pitchers</dt><dd>${t.helped}</dd><dt>Misses that hurt their pitchers</dt><dd>${t.hurt}</dd></dl></div>`).join('');
   const net = t => t.helped - t.hurt;
   const [h, a] = cur.fair, diff = net(h) - net(a);
   document.getElementById('balance').innerHTML = Math.abs(diff) <= 1
-    ? `<b>Balanced.</b> Missed calls split close to evenly: net ${net(h)>=0?'+':''}${net(h)} for ${tn(h.team)} pitchers, ${net(a)>=0?'+':''}${net(a)} for ${tn(a.team)} pitchers.`
-    : `<b>Leaned ${diff>0?tn(h.team):tn(a.team)}.</b> Missed calls netted ${net(h)>=0?'+':''}${net(h)} for ${tn(h.team)} pitchers and ${net(a)>=0?'+':''}${net(a)} for ${tn(a.team)} pitchers, a ${Math.abs(diff)}-call difference.`;
+    ? `<b>Balanced.</b> Missed calls split close to evenly: net ${net(h)>=0?'+':''}${net(h)} for ${sideShort(h)} pitchers, ${net(a)>=0?'+':''}${net(a)} for ${sideShort(a)} pitchers.`
+    : `<b>Leaned ${diff>0?sideShort(h):sideShort(a)}.</b> Missed calls netted ${net(h)>=0?'+':''}${net(h)} for ${sideShort(h)} pitchers and ${net(a)>=0?'+':''}${net(a)} for ${sideShort(a)} pitchers, a ${Math.abs(diff)}-call difference.`;
 
   // misses table
   const misses = cur.pitches.filter(p => p.adjOK === false);
   document.getElementById('t-miss').innerHTML = `<thead><tr><th class="r">Pitch</th><th>Inning</th><th>Count</th><th>Pitcher</th><th>Batter</th><th>Call</th><th>Pitch type</th><th class="r np">Velo</th><th>Location</th><th class="r">Off edge</th><th>Helped</th></tr></thead><tbody>` +
     (misses.map(p => `<tr class="row-btn ${state.hl===p.no?'hl':''}" data-no="${p.no}" tabindex="0"><td class="r">${p.no}</td><td>${p.half==='Top'?'T':'B'}${p.inning}</td><td class="num">${p.balls}-${p.strikes}</td><td>${esc(nameFL(p.pitcher))}</td><td>${esc(nameFL(p.batter))} <span style="color:var(--muted)">(${p.bSide[0]})</span></td>
       <td><span class="pill ms">${p.missType==='ballCalledStrike'?'Ball called strike':'Strike called ball'}</span></td><td>${esc(p.type)}</td><td class="r np">${p.velo?p.velo.toFixed(1):'–'}</td><td>${p.region}</td>
-      <td class="r mono">${Math.abs(p.dist).toFixed(1)}" ${p.dist>0?'outside':'inside'}</td><td>${p.missType==='ballCalledStrike'?tn(p.pTeam)+' pitching':tn(p.bTeam)+' hitting'}</td></tr>`).join('') || `<tr><td colspan="11">No missed calls.</td></tr>`) + '</tbody>';
+      <td class="r mono">${Math.abs(p.dist).toFixed(1)}" ${p.dist>0?'outside':'inside'}</td><td>${m.home && m.home===m.away ? (p.missType==='ballCalledStrike' ? (p.half==='Top'?'Top':'Bottom')+'-half pitching' : (p.half==='Top'?'Top':'Bottom')+'-half hitting') : (p.missType==='ballCalledStrike'?tn(p.pTeam)+' pitching':tn(p.bTeam)+' hitting')}</td></tr>`).join('') || `<tr><td colspan="11">No missed calls.</td></tr>`) + '</tbody>';
 
   // HBP review
   document.getElementById('hbps').innerHTML = cur.hbp.map(p => `<div class="hbp">${zoneSVG([{...p, dec:'S', adjOK:true}], Z, {r:2.6})}

@@ -5,7 +5,7 @@ const fmtDate = s => { if (!s) return ''; const [y, m, d] = s.split('-').map(Num
 
 export function reportEmail({ name, url, game, s, hbp, pdf }) {
   const first = name.split(' ')[0];
-  const title = `${game.away} at ${game.home}`;
+  const title = game.intra ? `${game.home} intrasquad` : `${game.away} at ${game.home}`;
   const subject = `Your plate report: ${title}, ${fmtDate(game.date)}`;
   const stat = (label, value) => `<td style="padding:12px 8px;text-align:center;border:1px solid #D9E1E8;border-radius:8px;background:#FFFFFF">
       <div style="font:800 24px/1 Arial Narrow,Arial,sans-serif;color:#0D1117">${esc(value)}</div>

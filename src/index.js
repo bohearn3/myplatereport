@@ -197,7 +197,7 @@ async function saveReport(request, env, ctx) {
   }
   const teams = rep.teams || {};
   const tname = c => (teams[c] && teams[c][1]) || c;
-  const msg = reportEmail({ name, url, pdf, game: { date: g.Date, home: tname(g.HomeTeam), away: tname(g.AwayTeam) }, s, hbp: A.hbp.length });
+  const msg = reportEmail({ name, url, pdf, game: { date: g.Date, home: tname(g.HomeTeam), away: tname(g.AwayTeam), intra: g.HomeTeam && g.HomeTeam === g.AwayTeam }, s, hbp: A.hbp.length });
   const payload = { from: FROM, to: [email], reply_to: env.REPLY_TO || admin, subject: msg.subject, html: msg.html, text: msg.text };
   if (pdf) payload.attachments = [{ filename: `Plate Report - ${safeName(name)} - ${g.Date}.pdf`, path: `${url}/pdf` }];
   const r = await fetch('https://api.resend.com/emails', {

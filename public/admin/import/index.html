@@ -121,7 +121,7 @@ function draw(){
     const st = r.state(); if (filter !== 'all' && st !== filter) return '';
     const label = {ok:'Exact', maybe:r.m.why, need:r.m.why, skip:'Skipped', done:`Imported · ${r.result}`}[st];
     return `<tr data-i="${i}"><td><input type="checkbox" class="inc" ${r.include?'checked':''} ${r.done?'disabled':''} aria-label="Include game"></td>
-      <td>${fmtDate(r.g.Date)}</td><td>${esc(teamName(r.g.AwayTeam))} at ${esc(teamName(r.g.HomeTeam))}</td><td><b>${esc(r.g.umpireName || '(none)')}</b></td>
+      <td>${fmtDate(r.g.Date)}</td><td>${r.g.HomeTeam===r.g.AwayTeam ? `${esc(teamName(r.g.HomeTeam))} intrasquad` : `${esc(teamName(r.g.AwayTeam))} at ${esc(teamName(r.g.HomeTeam))}`}</td><td><b>${esc(r.g.umpireName || '(none)')}</b></td>
       <td><select class="pick" ${r.done?'disabled':''}>${opts}</select></td><td><span class="pill ${st}">${esc(label)}</span></td><td class="r">${r.g.pitches.length}</td></tr>`;
   }).join('');
   $('rows').querySelectorAll('tr[data-i]').forEach(tr => { tr.querySelector('.pick').value = rows[+tr.dataset.i].id; });

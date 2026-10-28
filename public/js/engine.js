@@ -150,13 +150,20 @@
     };
   }
 
+  // Home vs. visitor pitching. Intrasquad games (same team on both sides) split by half instead:
+  // top-half pitchers vs. bottom-half pitchers.
   function fairness(ps, home, away) {
-    const teams = [home, away].map(team => {
-      const mine = ps.filter(p => p.pTeam === team);
+    const intra = home && home === away;
+    const groups = intra
+      ? [{ key: 'Top', test: p => p.half === 'Top', intra: true }, { key: 'Bottom', test: p => p.half !== 'Top', intra: true }]
+      : [{ key: home, test: p => p.pTeam === home }, { key: away, test: p => p.pTeam === away }];
+    const teams = groups.map(({ key, test, intra }) => {
+      const team = key;
+      const mine = ps.filter(test);
       const s = summarize(mine);
       const dec = mine.filter(p => p.dec && p.has);
       return {
-        team, ...s,
+        team, intra: !!intra, ...s,
         helped: dec.filter(p => p.missType === 'ballCalledStrike').length, // favored this team's pitchers
         hurt: dec.filter(p => p.missType === 'strikeCalledBall').length
       };
