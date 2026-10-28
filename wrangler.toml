@@ -7,6 +7,10 @@ compatibility_date = "2026-06-01"
 directory = "./public"
 binding = "ASSETS"
 
+# Umpire replies to report emails go here. RESEND_API_KEY is a secret set in the Cloudflare dashboard.
+[vars]
+REPLY_TO = "bohearn3@gmail.com"
+
 # Coming next, once they're created in the Cloudflare dashboard:
 # [[d1_databases]]   -> umpires, games, pitches (season trends)
 # [[r2_buckets]]     -> report PDFs
