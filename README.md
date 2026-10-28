@@ -37,6 +37,7 @@ Hosted on Cloudflare Workers at **myplatereport.com**.
   - **View only:** roster, trends, reports.
   - **View & send:** also send reports to umpires already on their roster. Replies go to the coordinator.
   - **Full control:** also add and edit umpires and import rosters; they can only add or remove their own conference tags.
+- **Fixing a wrong upload:** on an umpire's card, each game has *Move to another umpire* and *Remove game* (master and full-control coordinators, within their conferences). Moving or removing turns off every old report link for that game (the wrong umpire may have been emailed one) and deletes its cached PDF; a move can email the new link to the right umpire. Changes are recorded in the `audit` table.
 - Every rule is enforced on the server (`/coord/api/*`); pages only hide what a tier can't use. Turning a coordinator off signs them out everywhere.
 
 ## Deploying

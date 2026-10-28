@@ -69,6 +69,16 @@ select.tagsel{width:auto;min-width:170px}
 .game .m{color:var(--muted)}
 .game .links{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
 .game a{color:var(--deep);font-weight:600}
+.game .act{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
+.game .act:hover{color:var(--ink)}
+.game .act.warn:hover{color:var(--bad)}
+.fix{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;display:grid;gap:8px}
+.fix select{padding:7px 9px}
+.fix .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fix .row button{width:auto;padding:8px 14px;font-size:.86rem}
+.fix p{margin:0;font-size:.82rem;color:var(--muted)}
+.fix .check{margin:0;font-size:.85rem}
+button.danger{background:var(--bad)!important;color:#fff!important}
 .empty{color:var(--muted);text-align:center;padding:40px 10px}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px;z-index:20}
 .modal .box{background:var(--surface);border-radius:14px;max-width:760px;width:100%;max-height:86vh;overflow:auto;padding:20px}
@@ -212,7 +222,9 @@ async function open(id){
     const status = latest ? (latest.email_status==='sent' ? `Emailed ${fmtDate(latest.emailed_at.slice(0,10))}` : `Email: ${esc(latest.email_status||'not sent')}`) : 'No report';
     return `<div class="game"><b>${g.home===g.away ? `${esc(g.home_name||g.home)} intrasquad` : `${esc(g.away_name||g.away)} at ${esc(g.home_name||g.home)}`}</b>
       <span class="m">${fmtDate(g.date)} · ${pct(g.adj)} adjusted · ${g.misses ?? '–'} missed · ${status}${reps.length>1?` · sent ${reps.length} times`:''}</span>
-      ${latest ? `<div class="links"><a href="/r/${esc(latest.id)}" target="_blank" rel="noopener">Open report</a><a href="/r/${esc(latest.id)}/pdf" target="_blank" rel="noopener">PDF</a></div>` : ''}</div>`;
+      <div class="links">${latest ? `<a href="/r/${esc(latest.id)}" target="_blank" rel="noopener">Open report</a><a href="/r/${esc(latest.id)}/pdf" target="_blank" rel="noopener">PDF</a>` : ''}
+        ${ME && MPR.can(ME,'full') ? `<button type="button" class="act" data-move="${esc(g.id)}">Move to another umpire</button><button type="button" class="act warn" data-remove="${esc(g.id)}">Remove game</button>` : ''}</div>
+      <div class="fix" id="fix-${esc(g.id)}" hidden></div></div>`;
   }).join('') || '<p class="m">No games yet.</p>';
 }
 /* ---------- trend charts ---------- */
@@ -348,6 +360,51 @@ $('imp-go').addEventListener('click', async () => {
   } catch(err){ $('imp-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
   finally { $('imp-go').disabled = false; }
 });
+
+/* ---------- fix a wrong upload: move or remove a game ---------- */
+function gameTitle(g){ return g ? (g.home===g.away ? `${g.home_name||g.home} intrasquad` : `${g.away_name||g.away} at ${g.home_name||g.home}`) : 'this game'; }
+let lastDetail = null;
+$('games').addEventListener('click', async e => {
+  const mv = e.target.closest('[data-move]'), rm = e.target.closest('[data-remove]');
+  const go = e.target.closest('[data-go]'), cancel = e.target.closest('[data-cancel]');
+  if (cancel) { const box = cancel.closest('.fix'); box.hidden = true; box.innerHTML = ''; return; }
+  if (mv || rm) {
+    const id = (mv || rm).dataset.move || (mv || rm).dataset.remove, box = $('fix-' + id);
+    document.querySelectorAll('.fix').forEach(b => { if (b !== box) { b.hidden = true; b.innerHTML = ''; } });
+    const me = list.find(u => u.id === selected);
+    if (mv) {
+      const others = list.filter(u => u.id !== selected && u.active).sort((a,b)=>a.name.localeCompare(b.name));
+      box.innerHTML = `<p>Move this game to the right umpire. The old report link stops working, so the wrong umpire can no longer open it.</p>
+        <select id="mv-to-${esc(id)}" aria-label="Move to umpire"><option value="">Choose the right umpire…</option>${others.map(u => `<option value="${esc(u.id)}">${esc(u.name)}${(u.tags||[]).length?` (${esc(u.tags.join(', '))})`:''}</option>`).join('')}</select>
+        <label class="check"><input type="checkbox" id="mv-notify-${esc(id)}" checked> Email the report to them${MPR.can(ME,'send') ? ' (with PDF)' : ''}</label>
+        <div class="row"><button type="button" class="primary" data-go="move" data-id="${esc(id)}">Move game</button><button type="button" class="ghost" data-cancel>Cancel</button></div><div class="fmsg"></div>`;
+    } else {
+      box.innerHTML = `<p>Remove this game from ${esc(me ? me.name : 'this umpire')}? It comes off their trends, and any report links for it stop working. This can't be undone; you can upload the file again later.</p>
+        <div class="row"><button type="button" class="primary danger" data-go="remove" data-id="${esc(id)}">Remove game</button><button type="button" class="ghost" data-cancel>Cancel</button></div><div class="fmsg"></div>`;
+    }
+    box.hidden = false; return;
+  }
+  if (go) {
+    const id = go.dataset.id, box = $('fix-' + id), msg = box.querySelector('.fmsg');
+    go.disabled = true; msg.innerHTML = '';
+    try {
+      if (go.dataset.go === 'move') {
+        const to = $('mv-to-' + id).value; if (!to) { msg.innerHTML = '<div class="msg err">Choose the umpire to move it to.</div>'; go.disabled = false; return; }
+        go.textContent = $('mv-notify-' + id).checked ? 'Moving and emailing…' : 'Moving…';
+        const r = await api(MPR.base + '/games/' + id + '/move', {method:'POST', body: JSON.stringify({toUmpireId: to, notify: $('mv-notify-' + id).checked})});
+        const toName = (list.find(u => u.id === to) || {}).name || 'the other umpire';
+        await load(); await open(selected);
+        flash(`Moved to ${toName}.${r.emailed ? ` Report emailed${r.pdf ? ' with the PDF' : ''}.` : ''}${r.revoked ? ' The old link no longer works.' : ''}`);
+      } else {
+        go.textContent = 'Removing…';
+        const r = await fetch(MPR.base + '/games/' + id, {method:'DELETE', headers:{'content-type':'application/json'}});
+        const j = await r.json().catch(()=>({})); if (!r.ok) throw new Error(j.error || `The server returned ${r.status}.`);
+        await load(); await open(selected); flash('Game removed.');
+      }
+    } catch(err) { msg.innerHTML = `<div class="msg err">${esc(err.message)}</div>`; go.disabled = false; go.textContent = go.dataset.go === 'move' ? 'Move game' : 'Remove game'; }
+  }
+});
+function flash(t){ $('f-msg').innerHTML = `<div class="msg ok">${esc(t)}</div>`; $('history').scrollIntoView({block:'nearest'}); }
 
 let ME = null;
 MPR.ready.then(me => {

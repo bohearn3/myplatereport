@@ -56,6 +56,11 @@ async function ensureSchema(db) {
     try { await db.prepare(`ALTER TABLE umpires ADD COLUMN tags TEXT`).run(); } catch (e) { /* already there */ }
     await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '3') ON CONFLICT(k) DO UPDATE SET v = '3'`).run();
   }
+  if (ver < 4) {
+    try { await db.prepare(`ALTER TABLE reports ADD COLUMN revoked_at TEXT`).run(); } catch (e) { /* already there */ }
+    await db.prepare(`CREATE TABLE IF NOT EXISTS audit (at TEXT NOT NULL, actor TEXT, action TEXT NOT NULL, details TEXT)`).run();
+    await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '4') ON CONFLICT(k) DO UPDATE SET v = '4'`).run();
+  }
   schemaReady = true;
 }
 
@@ -100,8 +105,8 @@ async function buildAndStorePdf(env, origin, id) {
 async function servePdf(id, env, origin) {
   if (!/^[A-Za-z0-9_-]{16,40}$/.test(id) || !env.DB) return new Response('Not found', { status: 404 });
   await ensureSchema(env.DB);
-  const rep = await env.DB.prepare(`SELECT r.id, g.date, u.name FROM reports r JOIN games g ON g.id = r.game_id JOIN umpires u ON u.id = r.umpire_id WHERE r.id = ?`).bind(id).first();
-  if (!rep) return new Response('Not found', { status: 404 });
+  const rep = await env.DB.prepare(`SELECT r.id, r.revoked_at, g.date, u.name FROM reports r JOIN games g ON g.id = r.game_id JOIN umpires u ON u.id = r.umpire_id WHERE r.id = ?`).bind(id).first();
+  if (!rep || rep.revoked_at) return new Response('Not found', { status: 404 });
   const headers = { 'content-type': 'application/pdf', 'content-disposition': `inline; filename="Plate Report - ${safeName(rep.name)} - ${rep.date}.pdf"`, 'cache-control': 'private, max-age=3600' };
   if (env.PDFS) { const cached = await env.PDFS.get(pdfKey(id), 'stream'); if (cached) return new Response(cached, { headers }); }
   try {
@@ -183,31 +188,89 @@ async function saveReport(request, env, a, body) {
   const origin = new URL(request.url).origin;
   const url = `${origin}/r/${reportId}`;
 
+  const teams = rep.teams || {};
+  const out = await deliverReport(env, a, origin, reportId, { name, email }, g, c => (teams[c] && teams[c][1]) || c, s, A.hbp.length, body.attachPdf !== false);
+  return json(out.body, out.status);
+}
+
+// Build the PDF (if wanted) and email the report link. Used for new reports and for games moved to the right umpire.
+async function deliverReport(env, a, origin, reportId, ump, g, tname, s, hbpN, wantPdf) {
+  const db = env.DB, url = `${origin}/r/${reportId}`;
   let pdf = false, pdfNote = null;
-  if (body.attachPdf !== false) {
+  if (wantPdf) {
     try { pdf = await buildAndStorePdf(env, origin, reportId); if (!pdf) pdfNote = 'PDF storage is not connected'; }
     catch (e) { pdfNote = e.message; }
   }
   await db.prepare('UPDATE reports SET pdf_status = ? WHERE id = ?').bind(pdf ? 'ready' : `skipped: ${pdfNote || 'off'}`, reportId).run();
-
   if (!env.RESEND_API_KEY) {
     await db.prepare('UPDATE reports SET email_status = ? WHERE id = ?').bind('not_configured', reportId).run();
-    return json({ ok: true, url, emailed: false, pdf, note: 'Report saved. Email is not set up yet (RESEND_API_KEY is missing).' });
+    return { status: 200, body: { ok: true, url, emailed: false, pdf, note: 'Report saved. Email is not set up yet (RESEND_API_KEY is missing).' } };
   }
-  const teams = rep.teams || {};
-  const tname = c => (teams[c] && teams[c][1]) || c;
-  const msg = reportEmail({ name, url, pdf, game: { date: g.Date, home: tname(g.HomeTeam), away: tname(g.AwayTeam), intra: g.HomeTeam && g.HomeTeam === g.AwayTeam }, s, hbp: A.hbp.length });
+  const msg = reportEmail({ name: ump.name, url, pdf, game: { date: g.Date, home: tname(g.HomeTeam), away: tname(g.AwayTeam), intra: g.HomeTeam && g.HomeTeam === g.AwayTeam }, s, hbp: hbpN });
   // Replies go to the coordinator who sent it; the master admin's reports reply to REPLY_TO.
   const replyTo = isMaster(a) ? (env.REPLY_TO || a.email) : a.email;
-  const payload = { from: FROM, to: [email], reply_to: replyTo, subject: msg.subject, html: msg.html, text: msg.text };
-  if (pdf) payload.attachments = [{ filename: `Plate Report - ${safeName(name)} - ${g.Date}.pdf`, path: `${url}/pdf` }];
+  const payload = { from: FROM, to: [ump.email], reply_to: replyTo, subject: msg.subject, html: msg.html, text: msg.text };
+  if (pdf) payload.attachments = [{ filename: `Plate Report - ${safeName(ump.name)} - ${g.Date}.pdf`, path: `${url}/pdf` }];
   const out = await sendEmail(env, payload);
   if (!out.ok) {
     await db.prepare('UPDATE reports SET email_status = ? WHERE id = ?').bind(`error ${out.status}`, reportId).run();
-    return json({ ok: false, url, emailed: false, pdf, error: `Report saved, but the email failed: ${out.message}` }, 502);
+    return { status: 502, body: { ok: false, url, emailed: false, pdf, error: `Report saved, but the email failed: ${out.message}` } };
   }
   await db.prepare('UPDATE reports SET email_status = ?, email_id = ?, emailed_at = ? WHERE id = ?').bind('sent', out.id, now(), reportId).run();
-  return json({ ok: true, url, emailed: true, pdf, pdfNote });
+  return { status: 200, body: { ok: true, url, emailed: true, pdf, pdfNote } };
+}
+
+const audit = (db, a, action, details) => db.prepare('INSERT INTO audit (at, actor, action, details) VALUES (?, ?, ?, ?)').bind(now(), a.email, action, JSON.stringify(details)).run();
+
+// Old links stop working (the wrong umpire may have been emailed one) and cached PDFs are dropped.
+async function revokeGameLinks(env, gameId) {
+  const { results } = await env.DB.prepare('SELECT id FROM reports WHERE game_id = ? AND revoked_at IS NULL').bind(gameId).all();
+  await env.DB.prepare('UPDATE reports SET revoked_at = ? WHERE game_id = ? AND revoked_at IS NULL').bind(now(), gameId).run();
+  if (env.PDFS) for (const r of results) { try { await env.PDFS.delete(pdfKey(r.id)); } catch (e) { /* already gone */ } }
+  return results.length;
+}
+
+// Move a game to the right umpire (master, or full-control coordinators within their conferences).
+async function moveGame(request, env, a, gameId, body) {
+  need(a, 'full');
+  const db = env.DB;
+  const g = await db.prepare('SELECT * FROM games WHERE id = ?').bind(gameId).first();
+  if (!g) return json({ error: 'Game not found.' }, 404);
+  const from = await umpireInScope(env, a, g.umpire_id);
+  if (!body?.toUmpireId || body.toUmpireId === from.id) return json({ error: 'Choose a different umpire.' }, 400);
+  const to = await umpireInScope(env, a, body.toUmpireId);
+  if (await db.prepare('SELECT id FROM games WHERE umpire_id = ? AND game_key = ?').bind(to.id, g.game_key).first())
+    return json({ error: `${to.name} already has this game. Remove one of the copies instead.` }, 409);
+  const revoked = await revokeGameLinks(env, g.id);
+  await db.prepare('UPDATE games SET umpire_id = ? WHERE id = ?').bind(to.id, g.id).run();
+  await db.prepare('UPDATE reports SET umpire_id = ? WHERE game_id = ?').bind(to.id, g.id).run();
+  const reportId = token();
+  await db.prepare('INSERT INTO reports (id, game_id, umpire_id, created_by, created_at, email_status, pdf_status) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(reportId, g.id, to.id, a.email, now(), 'moved (not emailed)', 'on request').run();
+  await audit(db, a, 'move_game', { game: g.id, date: g.date, home: g.home, away: g.away, from: { id: from.id, name: from.name }, to: { id: to.id, name: to.name }, revoked });
+  const origin = new URL(request.url).origin;
+  let result = { ok: true, url: `${origin}/r/${reportId}`, emailed: false, revoked };
+  if (body.notify) {
+    const fields = JSON.parse(g.fields_json), game = { Date: g.date, HomeTeam: g.home, AwayTeam: g.away, Stadium: g.stadium, Level: g.level, pitches: JSON.parse(g.pitches_json) };
+    const A = E.analyzeGame({ ...game, umpire: to.name }, fields, E.ZONES.nsi2027);
+    const names = {}; for (const r of (await db.prepare('SELECT code, full_name FROM teams WHERE code IN (?, ?)').bind(g.home, g.away).all()).results) names[r.code] = r.full_name;
+    const out = await deliverReport(env, a, origin, reportId, { name: to.name, email: to.email }, game, c => names[c] || c, A.summary, A.hbp.length, body.pdf !== false);
+    result = { ...out.body, revoked, ok: out.status === 200 };
+    if (out.status !== 200) return json(result, out.status);
+  }
+  return json(result);
+}
+
+// Remove a game uploaded by mistake (master, or full-control coordinators within their conferences).
+async function removeGame(env, a, gameId) {
+  need(a, 'full');
+  const g = await env.DB.prepare('SELECT * FROM games WHERE id = ?').bind(gameId).first();
+  if (!g) return json({ error: 'Game not found.' }, 404);
+  const u = await umpireInScope(env, a, g.umpire_id);
+  const revoked = await revokeGameLinks(env, g.id);
+  await env.DB.prepare('DELETE FROM games WHERE id = ?').bind(g.id).run();
+  await audit(env.DB, a, 'remove_game', { game: g.id, date: g.date, home: g.home, away: g.away, umpire: { id: u.id, name: u.name }, revoked });
+  return json({ ok: true, revoked });
 }
 
 async function sendEmail(env, payload) {
@@ -222,9 +285,9 @@ async function sendEmail(env, payload) {
 async function getReport(id, env) {
   if (!env.DB || !/^[A-Za-z0-9_-]{16,40}$/.test(id)) return json({ error: 'Report not found.' }, 404);
   await ensureSchema(env.DB);
-  const rep = await env.DB.prepare(`SELECT r.id, r.game_id, g.date, u.id AS umpire_id, u.name AS umpire FROM reports r
+  const rep = await env.DB.prepare(`SELECT r.id, r.game_id, r.revoked_at, g.date, u.id AS umpire_id, u.name AS umpire FROM reports r
     JOIN games g ON g.id = r.game_id JOIN umpires u ON u.id = r.umpire_id WHERE r.id = ?`).bind(id).first();
-  if (!rep) return json({ error: 'Report not found.' }, 404);
+  if (!rep || rep.revoked_at) return json({ error: 'Report not found.' }, 404);
   const { results } = await env.DB.prepare(`SELECT id, date, home, away, stadium, level, fields_json, pitches_json FROM games
     WHERE umpire_id = ? AND (date < ? OR id = ?) ORDER BY date, created_at LIMIT 60`).bind(rep.umpire_id, rep.date, rep.game_id).all();
   const fields = JSON.parse(results.find(r => r.id === rep.game_id).fields_json);
@@ -288,7 +351,7 @@ async function getUmpire(id, env, a) {
       th.full_name AS home_name, ta.full_name AS away_name
     FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away
     WHERE g.umpire_id = ? ORDER BY g.date DESC, g.created_at DESC`).bind(id).all()).results;
-  const reports = (await env.DB.prepare(`SELECT id, game_id, created_at, created_by, email_status, emailed_at, pdf_status FROM reports WHERE umpire_id = ? ORDER BY created_at DESC`).bind(id).all()).results;
+  const reports = (await env.DB.prepare(`SELECT id, game_id, created_at, created_by, email_status, emailed_at, pdf_status FROM reports WHERE umpire_id = ? AND revoked_at IS NULL ORDER BY created_at DESC`).bind(id).all()).results;
   const { phone, notes, active, created_at, name, email } = u;
   return json({ umpire: { id, name, email, phone, notes, active, created_at, tags: parseTags(u.tags) }, games, reports });
 }
@@ -429,6 +492,9 @@ async function api(request, env, a, sub) {
   const um = sub.match(/^\/umpires\/([A-Za-z0-9_-]+)$/);
   if (um && m === 'GET') return getUmpire(um[1], env, a);
   if (um && m === 'PUT') { need(a, 'full'); return updateUmpire(env, a, um[1], body); }
+  const gm = sub.match(/^\/games\/([A-Za-z0-9_-]+)(\/move)?$/);
+  if (gm && gm[2] && m === 'POST') return moveGame(request, env, a, gm[1], body);
+  if (gm && !gm[2] && m === 'DELETE') return removeGame(env, a, gm[1]);
 
   // Master only
   if (sub === '/games/import' && m === 'POST') { if (!isMaster(a)) throw new HttpError(403, 'Only the site admin can import seasons.'); return importGame(env, a, body); }
