@@ -27,7 +27,11 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-bod
 .logo{display:block;width:min(280px,60vw);height:auto}
 .top .name{margin-left:auto;color:#9fb4c7;font-size:1.1rem}
 .name{font-family:var(--f-display);font-weight:800;font-size:1.5rem;letter-spacing:.02em;text-transform:uppercase}
-.hero{padding-block:56px 64px}
+.hero{padding-block:44px 56px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center}
+.hero-text{min-width:0}
+.hero-photo{position:relative;margin:0;min-width:0}
+.hero-photo::before{content:"";position:absolute;inset:14px -14px -14px 14px;border:2px solid var(--powder);border-radius:14px}
+.hero-photo img{position:relative;display:block;width:100%;height:auto;aspect-ratio:4/5;max-height:520px;object-fit:cover;object-position:30% 35%;border-radius:12px;background:#1a2028}
 .eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:#9fb4c7;font-weight:600}
 h1{font-family:var(--f-display);font-weight:800;font-size:clamp(2.6rem,7vw,4.6rem);line-height:.95;text-transform:uppercase;margin:10px 0 18px;text-wrap:balance}
 h1 span{color:var(--powder)}
@@ -37,7 +41,7 @@ h1 span{color:var(--powder)}
 .grid p{margin:0;color:var(--muted)}
 .grid div{border-top:3px solid var(--powder);padding-top:14px}
 footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--muted);font-size:.85rem}
-@media (max-width:720px){.grid{grid-template-columns:1fr}}
+@media (max-width:720px){.grid{grid-template-columns:1fr}.hero{grid-template-columns:1fr;gap:32px}.hero-photo{margin-right:14px}.hero-photo img{aspect-ratio:4/3;object-position:30% 30%}}
 </style>
 </head>
 <body>
@@ -45,9 +49,14 @@ footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--mute
   <div class="wrap">
     <div class="top"><img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201"><div class="name">MyPlateReport</div></div>
     <div class="hero">
+      <div class="hero-text">
       <div class="eyebrow">Postgame plate umpire reports</div>
       <h1>Every call. <span>Every edge.</span> Every game.</h1>
       <p>Postgame strike zone reports for plate umpires, built from Trackman pitch data and scored on the 2027 NCAA National Strike Zone Initiative static zone.</p>
+      </div>
+      <figure class="hero-photo">
+        <img src="/img/hero-plate-umpire.jpg" srcset="/img/hero-plate-umpire-560.jpg 560w, /img/hero-plate-umpire.jpg 960w" sizes="(max-width:720px) 92vw, 380px" alt="Plate umpire signaling a called strike as the catcher holds the ball" width="960" height="1200">
+      </figure>
     </div>
   </div>
 </header>
