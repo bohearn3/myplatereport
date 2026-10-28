@@ -180,11 +180,13 @@ $('f').addEventListener('submit', async e => {
   e.preventDefault(); if ($('send').disabled) return;
   $('send').disabled = true; $('send-msg').innerHTML = '';
   try {
-    const r = await fetch('/api/reports', {method:'POST', headers:{'content-type':'application/json'},
+    const r = await fetch('/admin/api/reports', {method:'POST', headers:{'content-type':'application/json'},
       body: JSON.stringify({umpire:{name:$('ump-name').value.trim(), email:$('ump-email').value.trim()}, report: payload()})});
     const j = await r.json().catch(()=>({}));
     if (!r.ok) throw new Error(j.error || `The server returned ${r.status}.`);
-    $('send-msg').innerHTML = `<div class="msg ok">Sent to ${esc($('ump-email').value.trim())}. <a href="${esc(j.url)}" target="_blank" rel="noopener">Open the report</a></div>`;
+    $('send-msg').innerHTML = j.emailed
+      ? `<div class="msg ok">Sent to ${esc($('ump-email').value.trim())}. <a href="${esc(j.url)}" target="_blank" rel="noopener">Open the report</a></div>`
+      : `<div class="msg warn">${esc(j.note || 'Report saved but not emailed.')} <a href="${esc(j.url)}" target="_blank" rel="noopener">Open the report</a></div>`;
   } catch(err) {
     $('send-msg').innerHTML = `<div class="msg err">Not sent. ${esc(err.message)}</div>`;
   } finally { validate(); }

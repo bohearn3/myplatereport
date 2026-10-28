@@ -545,7 +545,7 @@ function render(){
     `Raw accuracy uses the zone line exactly. Adjusted accuracy does not count a miss when the pitch was inside the buffer.`,
     `Edge pitch: within ${E.EDGE_BAND}" of the zone edge, inside or outside. "Off edge" is the distance from the zone line to the center of the ball.`,
     `Perceived zone: your called pitches smoothed with a 3" kernel. The solid line marks where you called strikes half the time. Small samples are noisy; the recent-games view gives a steadier picture.`,
-    `Trends and comparisons use only your own tracked games, scored with the same zone and rules. Data file: ${esc(m.file.replace('.xlsm',''))}.`
+    `Trends and comparisons use only your own tracked games, scored with the same zone and rules.`
   ].map(t=>`<li>${t}</li>`).join('');
 }
 
