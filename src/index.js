@@ -252,7 +252,7 @@ async function listUmpires(env) {
 async function getUmpire(id, env) {
   const u = await env.DB.prepare(`SELECT id, name, email, phone, active, notes, tags, created_at FROM umpires WHERE id = ?`).bind(id).first();
   if (!u) return json({ error: 'Umpire not found.' }, 404);
-  const games = (await env.DB.prepare(`SELECT g.id, g.date, g.home, g.away, g.stadium, g.adj, g.raw, g.decisions, g.misses, g.edge,
+  const games = (await env.DB.prepare(`SELECT g.id, g.date, g.home, g.away, g.stadium, g.level, g.adj, g.raw, g.decisions, g.misses, g.edge,
       th.full_name AS home_name, ta.full_name AS away_name
     FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away
     WHERE g.umpire_id = ? ORDER BY g.date DESC, g.created_at DESC`).bind(id).all()).results;
