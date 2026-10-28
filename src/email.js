@@ -14,10 +14,7 @@ export function reportEmail({ name, url, game, s, hbp }) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F6F9"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
   <tr><td style="background:#0D1117;border-radius:12px 12px 0 0;padding:18px 22px">
-    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-      <td style="width:40px;height:40px;background:#63A6DA;border-radius:8px;text-align:center;font:800 20px/40px Arial Narrow,Arial,sans-serif;color:#000">BB</td>
-      <td style="padding-left:12px;font:800 18px/1 Arial Narrow,Arial,sans-serif;letter-spacing:.04em;color:#F3F6F9;text-transform:uppercase">MyPlateReport</td>
-    </tr></table></td></tr>
+    <img src="https://myplatereport.com/img/bb-collegiate-umpires-dark.png" width="240" height="40" alt="BB Collegiate Umpires" style="display:block;border:0;width:240px;height:auto"></td></tr>
   <tr><td style="background:#FFFFFF;padding:24px 22px;font:15px/1.55 Arial,sans-serif;color:#0D1117">
     <p style="margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#5A6573">Plate umpire report · 2027 NSI static zone</p>
     <h1 style="margin:0 0 4px;font:800 26px/1.1 Arial Narrow,Arial,sans-serif;text-transform:uppercase">${esc(title)}</h1>

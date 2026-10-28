@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MyPlateReport</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 <meta name="description" content="Postgame strike zone reports for collegiate plate umpires.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +24,8 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-bod
 .band{background:var(--head);color:var(--headInk)}
 .wrap{max-width:960px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
 .top{display:flex;align-items:center;gap:14px;padding-block:18px}
-.mark{width:44px;height:44px;border-radius:9px;background:var(--powder);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;font-size:1.5rem;color:#000}
+.logo{display:block;width:min(280px,60vw);height:auto}
+.top .name{margin-left:auto;color:#9fb4c7;font-size:1.1rem}
 .name{font-family:var(--f-display);font-weight:800;font-size:1.5rem;letter-spacing:.02em;text-transform:uppercase}
 .hero{padding-block:56px 64px}
 .eyebrow{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:#9fb4c7;font-weight:600}
@@ -39,9 +43,9 @@ footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--mute
 <body>
 <header class="band">
   <div class="wrap">
-    <div class="top"><div class="mark" aria-hidden="true">BB</div><div class="name">MyPlateReport</div></div>
+    <div class="top"><img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201"><div class="name">MyPlateReport</div></div>
     <div class="hero">
-      <div class="eyebrow">Collegiate Umpires</div>
+      <div class="eyebrow">Postgame plate umpire reports</div>
       <h1>Every call. <span>Every edge.</span> Every game.</h1>
       <p>Postgame strike zone reports for plate umpires, built from Trackman pitch data and scored on the 2027 NCAA National Strike Zone Initiative static zone.</p>
     </div>
