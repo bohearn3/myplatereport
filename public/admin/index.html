@@ -11,35 +11,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/admin/admin.css">
 <style>
 /* Layout: admin workbench. Narrow form column on the left (file -> teams -> umpire -> send),
    live report preview filling the right. Stacks on small screens. */
-:root{
-  --bg:#F3F6F9; --surface:#FFFFFF; --ink:#0D1117; --muted:#5A6573; --line:#D9E1E8;
-  --powder:#63A6DA; --deep:#1D5E8F; --good:#1F8A5B; --warn:#C7791A; --bad:#D1453B; --head:#0D1117; --headInk:#F3F6F9;
-  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
-  --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  color-scheme:light;
-}
-@media (prefers-color-scheme:dark){:root{
-  --bg:#0B0E12; --surface:#141A21; --ink:#E7EDF3; --muted:#93A0AE; --line:#26303B;
-  --deep:#7FB9E6; --good:#3DBB83; --warn:#E6A040; --bad:#F0675C; --head:#000; color-scheme:dark}}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;display:flex;flex-direction:column}
-.band{background:var(--head);color:var(--headInk);padding:12px max(20px,env(safe-area-inset-right,0px)) 12px max(20px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:12px}
-.logo{display:block;width:200px;height:auto}
-.band .name{font-family:var(--f-display);font-weight:800;font-size:1.3rem;text-transform:uppercase;letter-spacing:.02em}
-.band .sub{margin-left:auto;font-size:.82rem;color:#9fb4c7}
 .work{flex:1;display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);min-height:0}
 .form{padding:20px;overflow:auto;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:18px}
 .step h2{font-family:var(--f-display);font-weight:800;font-size:1.15rem;text-transform:uppercase;margin:0 0 8px;display:flex;gap:8px;align-items:center}
 .step h2 span{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--bg);font-family:var(--f-body);font-size:.75rem}
-.drop{border:2px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;background:var(--surface);cursor:pointer;transition:border-color .15s}
+.drop{position:relative;display:block;border:2px dashed var(--line);border-radius:12px;padding:22px 16px;text-align:center;background:var(--surface);cursor:pointer;transition:border-color .15s;margin:0}
 .drop:hover,.drop.over{border-color:var(--powder)}
 .drop:focus-within{outline:2px solid var(--powder);outline-offset:2px}
-.drop b{display:block;font-size:1rem}
-.drop small{color:var(--muted)}
+.drop b{display:block;font-size:1rem;color:var(--ink)}
+.drop small{color:var(--muted);font-weight:500}
 .drop input{position:absolute;opacity:0;width:1px;height:1px}
 .game{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:.9rem}
 .game .t{font-weight:700;font-size:1rem}
@@ -47,23 +31,15 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .stats{display:flex;gap:16px;margin-top:8px}
 .stats div b{display:block;font-family:var(--f-display);font-size:1.5rem;line-height:1}
 .stats div span{font-size:.75rem;color:var(--muted)}
-.msg{font-size:.85rem;padding:8px 10px;border-radius:8px;margin-top:8px}
-.msg.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
-.msg.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
-.msg.ok{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
-label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:10px 0 4px}
-input[type=text],input[type=email]{width:100%;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
-input:focus-visible,button:focus-visible{outline:2px solid var(--powder);outline-offset:1px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .row2 > div{min-width:0}
-button.primary{width:100%;font:inherit;font-weight:700;padding:12px;border:0;border-radius:10px;background:var(--ink);color:var(--bg);cursor:pointer}
-button.primary:disabled{opacity:.4;cursor:not-allowed}
-.hint{font-size:.8rem;color:var(--muted);margin-top:6px}
+.or{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.75rem;margin:12px 0 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.picked{font-size:.82rem;color:var(--good);margin-top:6px}
 .preview{position:relative;min-height:0;background:var(--bg)}
 .preview iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
 .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:24px}
 .empty b{display:block;font-family:var(--f-display);font-size:1.6rem;text-transform:uppercase;color:var(--ink)}
-[hidden]{display:none!important}
 @media (max-width:860px){
   html,body{height:auto}
   .work{grid-template-columns:1fr}
@@ -73,7 +49,7 @@ button.primary:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
-<header class="band"><img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201"><div class="name">MyPlateReport</div><div class="sub">Admin · Send a report</div></header>
+<header class="band"><img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201"><nav class="nav"><a href="/admin/" aria-current="page">Send a report</a><a href="/admin/umpires/">Umpires</a></nav></header>
 <div class="work">
   <form class="form" id="f" novalidate>
     <section class="step">
@@ -97,11 +73,14 @@ button.primary:disabled{opacity:.4;cursor:not-allowed}
         <div><label for="away-name">Visitor (<span id="away-code"></span>)</label><input type="text" id="away-name" autocomplete="off"></div>
         <div><label for="home-name">Home (<span id="home-code"></span>)</label><input type="text" id="home-name" autocomplete="off"></div>
       </div>
-      <p class="hint">Shown on the report. Saved for future games once the database is connected.</p>
+      <p class="hint">Shown on the report and saved for future games.</p>
     </section>
 
     <section class="step" id="s-ump" hidden>
       <h2><span>3</span>Plate umpire</h2>
+      <label for="ump-pick">Choose from your roster</label>
+      <select id="ump-pick"><option value="">Loading roster…</option></select>
+      <div class="or">or type a new umpire</div>
       <label for="ump-name">Full name</label><input type="text" id="ump-name" autocomplete="off" placeholder="e.g., Brooks O'Hearn" required>
       <label for="ump-email">Email</label><input type="email" id="ump-email" autocomplete="off" placeholder="name@example.com" required>
     </section>
@@ -110,7 +89,7 @@ button.primary:disabled{opacity:.4;cursor:not-allowed}
       <h2><span>4</span>Send</h2>
       <button class="primary" type="submit" id="send" disabled>Save and email report</button>
       <div id="send-msg"></div>
-      <p class="hint">The umpire gets an email with a private link to the interactive report and the PDF attached.</p>
+      <p class="hint">The umpire gets an email with a private link to the interactive report and the PDF attached. Building the PDF takes about 10 seconds.</p>
     </section>
   </form>
 
@@ -126,7 +105,24 @@ button.primary:disabled{opacity:.4;cursor:not-allowed}
 (function(){
 const $ = id => document.getElementById(id);
 const KNOWN = {PAC_TIG:['Pacific','Pacific Tigers'],SEA_RED:['Seattle U','Seattle University Redhawks'],SAN_TOR:['San Diego','San Diego Toreros'],ORE_BEA:['Oregon State','Oregon State Beavers'],FRE_BUL:['Fresno State','Fresno State Bulldogs'],BYU_COU:['BYU','BYU Cougars'],STM_GAE:["Saint Mary's","Saint Mary's Gaels"],LOY_LIO:['LMU','Loyola Marymount Lions'],GON_BUL:['Gonzaga','Gonzaga Bulldogs'],POR_PIL:['Portland','Portland Pilots'],SAN_BRO:['Santa Clara','Santa Clara Broncos'],SAN_DON:['San Francisco','San Francisco Dons'],PEP_WAV:['Pepperdine','Pepperdine Waves']};
-let parsed = null, ready = false;
+let parsed = null, ready = false, roster = [], tmr;
+const preselect = new URLSearchParams(location.search).get('umpire');
+async function loadRoster(){
+  const sel = $('ump-pick');
+  try {
+    const r = await fetch('/admin/api/umpires'); const j = await r.json();
+    roster = (j.umpires || []).filter(u => u.active);
+    sel.innerHTML = `<option value="">${roster.length ? 'Select an umpire…' : 'No umpires yet. Add them on the Umpires page.'}</option>` +
+      roster.map(u => `<option value="${esc(u.id)}">${esc(u.name)} · ${esc(u.email)}</option>`).join('');
+    if (preselect && roster.some(u => u.id === preselect)) { sel.value = preselect; pick(); }
+  } catch(e) { sel.innerHTML = '<option value="">Roster unavailable. Type the umpire below.</option>'; }
+}
+function pick(){
+  const u = roster.find(x => x.id === $('ump-pick').value);
+  if (!u) return;
+  $('ump-name').value = u.name; $('ump-email').value = u.email;
+  clearTimeout(tmr); tmr = setTimeout(pushPreview, 50); validate();
+}
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmtDate = s => { if(!s) return ''; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
 const shortName = full => { const known = Object.values(KNOWN).find(v => v[1] === full); return known ? known[0] : full.split(' ').slice(0,-1).join(' ') || full; };
@@ -174,25 +170,31 @@ const drop = $('drop');
 ['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
 ['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
 drop.addEventListener('drop', e => handle(e.dataTransfer.files[0]));
-let tmr; ['ump-name','home-name','away-name'].forEach(id => $(id).addEventListener('input', () => {
+['ump-name','home-name','away-name'].forEach(id => $(id).addEventListener('input', () => {
   if (parsed && !parsed.errors.length) $('g-title').textContent = `${$('away-name').value} at ${$('home-name').value}`;
   clearTimeout(tmr); tmr = setTimeout(pushPreview, 250); validate(); }));
 $('ump-email').addEventListener('input', validate);
+$('ump-pick').addEventListener('change', pick);
+['ump-name','ump-email'].forEach(id => $(id).addEventListener('input', () => {
+  const u = roster.find(x => x.id === $('ump-pick').value);
+  if (u && ($('ump-name').value !== u.name || $('ump-email').value !== u.email)) $('ump-pick').value = '';
+}));
+loadRoster();
 
 $('f').addEventListener('submit', async e => {
   e.preventDefault(); if ($('send').disabled) return;
-  $('send').disabled = true; $('send-msg').innerHTML = '';
+  $('send').disabled = true; $('send').textContent = 'Building PDF and sending…'; $('send-msg').innerHTML = '';
   try {
     const r = await fetch('/admin/api/reports', {method:'POST', headers:{'content-type':'application/json'},
       body: JSON.stringify({umpire:{name:$('ump-name').value.trim(), email:$('ump-email').value.trim()}, report: payload()})});
     const j = await r.json().catch(()=>({}));
     if (!r.ok) throw new Error(j.error || `The server returned ${r.status}.`);
     $('send-msg').innerHTML = j.emailed
-      ? `<div class="msg ok">Sent to ${esc($('ump-email').value.trim())}. <a href="${esc(j.url)}" target="_blank" rel="noopener">Open the report</a></div>`
+      ? `<div class="msg ok">Sent to ${esc($('ump-email').value.trim())}${j.pdf ? ' with the PDF attached' : ''}. <a href="${esc(j.url)}" target="_blank" rel="noopener">Open the report</a>${j.pdf ? ` · <a href="${esc(j.url)}/pdf" target="_blank" rel="noopener">PDF</a>` : ''}</div>${!j.pdf && j.pdfNote ? `<div class="msg warn">Sent without a PDF: ${esc(j.pdfNote)}.</div>` : ''}`
       : `<div class="msg warn">${esc(j.note || 'Report saved but not emailed.')} <a href="${esc(j.url)}" target="_blank" rel="noopener">Open the report</a></div>`;
   } catch(err) {
     $('send-msg').innerHTML = `<div class="msg err">Not sent. ${esc(err.message)}</div>`;
-  } finally { validate(); }
+  } finally { $('send').textContent = 'Save and email report'; validate(); }
 });
 })();
 </script>

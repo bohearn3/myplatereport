@@ -9,7 +9,8 @@ Hosted on Cloudflare Workers at **myplatereport.com**.
 |---|---|
 | `src/index.js` | Cloudflare Worker: serves the site, private report links (`/r/<id>`) and the API |
 | `public/index.html` | Home page |
-| `public/admin/` | Admin page: upload a Trackman CSV, set team names, enter the umpire, preview, send |
+| `public/admin/` | Admin: send a report (upload CSV, team names, pick umpire from roster, preview, send) |
+| `public/admin/umpires/` | Admin: umpire roster, roster CSV import, each umpire's games and reports |
 | `public/report.html` | The umpire report page (interactive + print/PDF layout). Loads data from `/api/reports/<id>`, or from the admin preview |
 | `public/js/engine.js` | Scoring engine: zone checks, raw/adjusted accuracy, edge pitches, perceived zone, fairness, HBP review, trends |
 | `public/js/trackman-csv.js` | Trackman CSV reader and file checks |
@@ -35,9 +36,10 @@ First-time setup (Cloudflare dashboard):
 
 ## Roadmap
 
-1. Home page live on myplatereport.com
-2. Admin upload page with live report preview ← *current* (protect `/admin` with Cloudflare Access)
-3. D1 database for umpires, games and pitches; R2 storage for PDFs
-4. Email delivery (Resend) with link + PDF
-5. Admin staff trend report every few weeks
-6. Umpire logins
+1. Home page live on myplatereport.com ✓
+2. Admin upload page with live report preview, behind Cloudflare Access ✓
+3. D1 database for umpires, games and pitches ✓
+4. Email delivery (Resend) ✓ with PDF attachment (Browser Run + KV) ← *current*
+5. Umpire roster page with CSV import ✓
+6. Admin staff trend report every few weeks
+7. Umpire logins

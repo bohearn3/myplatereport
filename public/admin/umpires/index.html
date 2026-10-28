@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Umpires · MyPlateReport</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/admin/admin.css">
+<style>
+/* Layout: roster table on the left, selected umpire's card (edit + games + reports) on the right. */
+.page{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,420px);min-height:0}
+.list{padding:20px;overflow:auto;min-width:0}
+.side{border-left:1px solid var(--line);padding:20px;overflow:auto;background:var(--surface)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar input[type=search]{flex:1;min-width:180px}
+h1.pg{font-family:var(--f-display);font-weight:800;font-size:1.8rem;text-transform:uppercase;margin:0 0 4px}
+.sub2{color:var(--muted);margin:0 0 16px;font-size:.9rem}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:color-mix(in srgb,var(--powder) 8%,transparent)}
+tbody tr.sel td{background:color-mix(in srgb,var(--powder) 18%,transparent)}
+tbody tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.74rem;font-weight:700}
+.pill.on{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.pill.off{background:var(--line);color:var(--muted)}
+.pill.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.pill.new{background:color-mix(in srgb,var(--powder) 22%,transparent);color:var(--deep)}
+.card h2{font-family:var(--f-display);font-weight:800;font-size:1.5rem;text-transform:uppercase;margin:0}
+.card h3{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row2>div{min-width:0}
+.check{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.9rem}
+.btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.games{display:flex;flex-direction:column;gap:8px}
+.game{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.86rem}
+.game b{display:block}
+.game .m{color:var(--muted)}
+.game .links{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+.game a{color:var(--deep);font-weight:600}
+.empty{color:var(--muted);text-align:center;padding:40px 10px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;padding:16px;z-index:20}
+.modal .box{background:var(--surface);border-radius:14px;max-width:760px;width:100%;max-height:86vh;overflow:auto;padding:20px}
+.modal h2{font-family:var(--f-display);font-weight:800;text-transform:uppercase;margin:0 0 6px}
+@media (max-width:900px){html,body{height:auto}.page{grid-template-columns:1fr}.side{border-left:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header class="band">
+  <img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201">
+  <nav class="nav"><a href="/admin/">Send a report</a><a href="/admin/umpires/" aria-current="page">Umpires</a></nav>
+</header>
+
+<div class="page">
+  <main class="list">
+    <h1 class="pg">Umpires</h1>
+    <p class="sub2" id="count">Loading the roster…</p>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search by name or email" aria-label="Search umpires">
+      <button type="button" class="ghost" id="b-add">Add umpire</button>
+      <label class="ghost filebtn" for="roster">Upload roster CSV<input type="file" id="roster" accept=".csv,text/csv"></label>
+      <label class="check" style="margin:0"><input type="checkbox" id="show-inactive"> Show inactive</label>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Name</th><th>Email</th><th class="r">Games</th><th>Last game</th><th class="r">Last adj.</th><th class="r">Avg adj.</th><th>Status</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <p class="hint">Roster CSV: one umpire per row with a <b>Name</b> (or <b>First</b> and <b>Last</b>) column and an <b>Email</b> column. <b>Phone</b> and <b>Notes</b> are optional. Existing umpires are matched by email and updated.</p>
+  </main>
+
+  <aside class="side" id="side">
+    <div class="empty" id="side-empty">Select an umpire to see their games and reports, or add a new one.</div>
+    <form class="card" id="card" hidden novalidate>
+      <div class="eyebrow" id="c-eyebrow">Umpire</div>
+      <h2 id="c-title"></h2>
+      <label for="f-name">Full name</label><input type="text" id="f-name" autocomplete="off" required>
+      <label for="f-email">Email</label><input type="email" id="f-email" autocomplete="off" required>
+      <div class="row2">
+        <div><label for="f-phone">Phone (optional)</label><input type="text" id="f-phone" autocomplete="off"></div>
+        <div><label for="f-notes">Notes (optional)</label><input type="text" id="f-notes" autocomplete="off"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="f-active" checked> Active (shows in the send list)</label>
+      <div class="btns">
+        <button type="submit" class="primary" id="f-save" style="width:auto;padding:10px 18px">Save</button>
+        <a class="ghost" id="f-send" href="/admin/">Send a report to this umpire</a>
+      </div>
+      <div id="f-msg"></div>
+      <div id="history" hidden>
+        <h3>Games and reports</h3>
+        <div class="games" id="games"></div>
+      </div>
+    </form>
+  </aside>
+</div>
+
+<div class="modal" id="imp" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="imp-t">
+    <h2 id="imp-t">Import roster</h2>
+    <p class="sub2" id="imp-sum"></p>
+    <div class="tw" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Result</th></tr></thead><tbody id="imp-rows"></tbody></table></div>
+    <div class="btns"><button type="button" class="primary" id="imp-go" style="width:auto;padding:10px 18px">Import</button><button type="button" class="ghost" id="imp-cancel">Cancel</button></div>
+    <div id="imp-msg"></div>
+  </div>
+</div>
+
+<script src="/js/trackman-csv.js"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = v => v==null ? '–' : (v*100).toFixed(1)+'%';
+const fmtDate = s => { if(!s) return '–'; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+const validEmail = s => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s||'');
+let list = [], selected = null, pending = [];
+
+async function api(path, opts={}){
+  const r = await fetch(path, {headers:{'content-type':'application/json'}, ...opts});
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(j.error || `The server returned ${r.status}.`);
+  return j;
+}
+async function load(){
+  try { list = (await api('/admin/api/umpires')).umpires; draw(); }
+  catch(e){ $('count').textContent = e.message; }
+}
+function draw(){
+  const q = $('q').value.trim().toLowerCase(), inact = $('show-inactive').checked;
+  const rows = list.filter(u => (inact || u.active) && (!q || u.name.toLowerCase().includes(q) || u.email.includes(q)));
+  const active = list.filter(u=>u.active).length;
+  $('count').textContent = `${active} active umpire${active===1?'':'s'}${list.length>active?`, ${list.length-active} inactive`:''}.`;
+  $('rows').innerHTML = rows.map(u => `<tr data-id="${esc(u.id)}" class="${selected===u.id?'sel':''}" tabindex="0">
+    <td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td class="r">${u.games}</td><td>${fmtDate(u.last_game)}</td>
+    <td class="r">${pct(u.last_adj)}</td><td class="r">${pct(u.avg_adj)}</td>
+    <td><span class="pill ${u.active?'on':'off'}">${u.active?'Active':'Inactive'}</span></td></tr>`).join('')
+    || `<tr><td colspan="7" class="empty">${list.length ? 'No umpires match that search.' : 'No umpires yet. Add one or upload your roster.'}</td></tr>`;
+}
+async function open(id){
+  selected = id; draw();
+  $('side-empty').hidden = true; $('card').hidden = false; $('f-msg').innerHTML = '';
+  if (!id){ // new umpire
+    $('c-eyebrow').textContent = 'New umpire'; $('c-title').textContent = 'Add umpire';
+    ['f-name','f-email','f-phone','f-notes'].forEach(k=>$(k).value=''); $('f-active').checked = true;
+    $('history').hidden = true; $('f-send').hidden = true; $('f-name').focus(); return;
+  }
+  const d = await api('/admin/api/umpires/'+id);
+  const u = d.umpire;
+  $('c-eyebrow').textContent = `Umpire since ${fmtDate(u.created_at.slice(0,10))}`; $('c-title').textContent = u.name;
+  $('f-name').value = u.name; $('f-email').value = u.email; $('f-phone').value = u.phone||''; $('f-notes').value = u.notes||''; $('f-active').checked = !!u.active;
+  $('f-send').hidden = false; $('f-send').href = `/admin/?umpire=${encodeURIComponent(u.id)}`;
+  const byGame = {}; d.reports.forEach(r => { (byGame[r.game_id] ||= []).push(r); });
+  $('history').hidden = false;
+  $('games').innerHTML = d.games.map(g => {
+    const reps = byGame[g.id] || [], latest = reps[0];
+    const status = latest ? (latest.email_status==='sent' ? `Emailed ${fmtDate(latest.emailed_at.slice(0,10))}` : `Email: ${esc(latest.email_status||'not sent')}`) : 'No report';
+    return `<div class="game"><b>${esc(g.away_name||g.away)} at ${esc(g.home_name||g.home)}</b>
+      <span class="m">${fmtDate(g.date)} · ${pct(g.adj)} adjusted · ${g.misses ?? '–'} missed · ${status}${reps.length>1?` · sent ${reps.length} times`:''}</span>
+      ${latest ? `<div class="links"><a href="/r/${esc(latest.id)}" target="_blank" rel="noopener">Open report</a><a href="/r/${esc(latest.id)}/pdf" target="_blank" rel="noopener">PDF</a></div>` : ''}</div>`;
+  }).join('') || '<p class="m">No games yet.</p>';
+}
+$('rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) open(tr.dataset.id); });
+$('rows').addEventListener('keydown', e => { if (e.key==='Enter'){ const tr = e.target.closest('tr[data-id]'); if (tr) open(tr.dataset.id); } });
+$('q').addEventListener('input', draw); $('show-inactive').addEventListener('change', draw);
+$('b-add').addEventListener('click', () => open(null));
+
+$('card').addEventListener('submit', async e => {
+  e.preventDefault();
+  const body = {name:$('f-name').value, email:$('f-email').value, phone:$('f-phone').value, notes:$('f-notes').value, active:$('f-active').checked};
+  if (!body.name.trim() || !validEmail(body.email.trim())){ $('f-msg').innerHTML = '<div class="msg err">Enter a name and a valid email.</div>'; return; }
+  try {
+    if (selected) await api('/admin/api/umpires/'+selected, {method:'PUT', body:JSON.stringify(body)});
+    else { const r = await api('/admin/api/umpires', {method:'POST', body:JSON.stringify(body)}); selected = r.id; }
+    await load(); await open(selected);
+    $('f-msg').innerHTML = '<div class="msg ok">Saved.</div>';
+  } catch(err){ $('f-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
+});
+
+// Roster import
+function mapRoster(text){
+  const rows = TrackmanCSV.parseCSV(text);
+  if (rows.length < 2) return {error:'The file has no rows.'};
+  const h = rows[0].map(x => x.trim().toLowerCase().replace(/[^a-z]/g,''));
+  const find = (...names) => h.findIndex(x => names.includes(x));
+  const iName = find('name','fullname','umpire','umpirename'), iFirst = find('first','firstname'), iLast = find('last','lastname','surname');
+  const iEmail = find('email','emailaddress','email1'), iPhone = find('phone','cell','mobile','phonenumber','cellphone'), iNotes = find('notes','note','level','crew');
+  if (iEmail < 0 || (iName < 0 && iFirst < 0)) return {error:'The roster needs an Email column and a Name column (or First and Last).'};
+  return {rows: rows.slice(1).map(r => ({
+    name: iName >= 0 ? r[iName] : [r[iFirst], iLast>=0 ? r[iLast] : ''].join(' ').trim(),
+    email: (r[iEmail]||'').trim().toLowerCase(), phone: iPhone>=0 ? r[iPhone] : '', notes: iNotes>=0 ? r[iNotes] : ''
+  })).filter(r => r.name || r.email)};
+}
+$('roster').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return; e.target.value = '';
+  const m = mapRoster(await f.text());
+  $('imp-msg').innerHTML = '';
+  if (m.error){ pending = []; $('imp-sum').textContent = m.error; $('imp-rows').innerHTML = ''; $('imp-go').hidden = true; $('imp').hidden = false; return; }
+  const known = new Set(list.map(u => u.email));
+  pending = m.rows;
+  let nNew = 0, nUpd = 0, nBad = 0;
+  $('imp-rows').innerHTML = m.rows.map(r => {
+    const bad = !r.name.trim() || !validEmail(r.email), upd = known.has(r.email);
+    bad ? nBad++ : upd ? nUpd++ : nNew++;
+    return `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td><span class="pill ${bad?'err':upd?'on':'new'}">${bad?'Skipped: missing name or email':upd?'Update':'New'}</span></td></tr>`;
+  }).join('');
+  $('imp-sum').textContent = `${f.name}: ${nNew} new, ${nUpd} already on the roster (will be updated)${nBad?`, ${nBad} skipped`:''}.`;
+  $('imp-go').hidden = !(nNew + nUpd); $('imp-go').textContent = `Import ${nNew + nUpd} umpire${nNew+nUpd===1?'':'s'}`;
+  $('imp').hidden = false; $('imp-go').focus();
+});
+$('imp-cancel').addEventListener('click', () => $('imp').hidden = true);
+$('imp').addEventListener('click', e => { if (e.target.id === 'imp') $('imp').hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('imp').hidden = true; });
+$('imp-go').addEventListener('click', async () => {
+  $('imp-go').disabled = true;
+  try {
+    const rows = pending.filter(r => r.name.trim() && validEmail(r.email));
+    const r = await api('/admin/api/umpires/import', {method:'POST', body:JSON.stringify({rows})});
+    $('imp-msg').innerHTML = `<div class="msg ok">Imported: ${r.created} new, ${r.updated} updated.${r.errors.length?` ${r.errors.length} skipped.`:''}</div>`;
+    await load(); setTimeout(() => $('imp').hidden = true, 1200);
+  } catch(err){ $('imp-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
+  finally { $('imp-go').disabled = false; }
+});
+
+load();
+})();
+</script>
+</body>
+</html>

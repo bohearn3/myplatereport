@@ -3,7 +3,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 const pct = v => (v == null ? '–' : (v * 100).toFixed(1) + '%');
 const fmtDate = s => { if (!s) return ''; const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); };
 
-export function reportEmail({ name, url, game, s, hbp }) {
+export function reportEmail({ name, url, game, s, hbp, pdf }) {
   const first = name.split(' ')[0];
   const title = `${game.away} at ${game.home}`;
   const subject = `Your plate report: ${title}, ${fmtDate(game.date)}`;
@@ -26,6 +26,7 @@ export function reportEmail({ name, url, game, s, hbp }) {
     ${hbp ? `<p style="margin:0 0 16px;color:#5A6573">${hbp} hit batter${hbp === 1 ? '' : 's'} listed in the review section.</p>` : ''}
     <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#0D1117;border-radius:10px">
       <a href="${esc(url)}" style="display:inline-block;padding:13px 22px;font:700 15px Arial,sans-serif;color:#FFFFFF;text-decoration:none">Open your full report</a></td></tr></table>
+    ${pdf ? `<p style="margin:14px 0 0;font-size:13px;color:#5A6573">A PDF copy is attached for printing or saving.</p>` : ''}
     <p style="margin:18px 0 0;font-size:13px;color:#5A6573">The report includes your zone chart, perceived strike zone, tough calls, home vs. visitor balance, every missed call and your trends. This link is private to you.</p>
   </td></tr>
   <tr><td style="padding:14px 22px;font:12px/1.5 Arial,sans-serif;color:#5A6573">Reply to this email with questions about your report.<br>${esc(url)}</td></tr>
@@ -38,7 +39,7 @@ Raw accuracy: ${pct(s.raw)}
 Edge accuracy: ${pct(s.edgeAcc)}
 Missed calls: ${s.missN}${hbp ? `\nHit batters for review: ${hbp}` : ''}
 
-Open your full report: ${url}
+Open your full report: ${url}${pdf ? '\nA PDF copy is attached.' : ''}
 
 This link is private to you. Reply to this email with questions.`;
   return { subject, html, text };

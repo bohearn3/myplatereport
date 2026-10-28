@@ -17,5 +17,11 @@ binding = "DB"
 database_name = "myplatereport"
 database_id = "5d4593ff-176d-4e3d-8fa7-343711e266d8"
 
-# Coming next:
-# [[r2_buckets]]     -> report PDFs
+# Cloudflare Browser Run: turns each report into a PDF (no API key needed)
+[browser]
+binding = "BROWSER"
+
+# PDF storage (Workers KV): add the namespace id once it's created in the dashboard
+# [[kv_namespaces]]
+# binding = "PDFS"
+# id = "<namespace id>"

@@ -59,6 +59,8 @@ header.band .wrap{display:flex;gap:20px;align-items:center;padding-block:22px;fl
 .seg button{font:inherit;font-size:.82rem;font-weight:600;border:0;background:transparent;color:var(--muted);padding:6px 12px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .seg button:focus-visible,.row-btn:focus-visible{outline:2px solid var(--powder);outline-offset:2px}
+a.pdfbtn{font-size:.82rem;font-weight:700;color:var(--bg);background:var(--ink);text-decoration:none;padding:6px 12px;border-radius:8px}
+a.pdfbtn:focus-visible{outline:2px solid var(--powder);outline-offset:2px}
 .controls .lbl{font-size:.78rem;color:var(--muted);font-weight:600}
 
 section{padding-block:30px;border-bottom:1px solid var(--line)}
@@ -225,6 +227,7 @@ footer ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;max-width:90ch}
       <button type="button" id="z-legacy2026" data-v="legacy2026" aria-pressed="false">2026 Zone</button>
     </div>
     <span class="lbl" style="margin-left:auto" id="c-src"></span>
+    <a class="pdfbtn" id="c-pdf" href="#" hidden>Download PDF</a>
   </div>
 
   <section id="s-verdict">
@@ -574,6 +577,8 @@ function boot(data){
   D = data; for (const k in cache) delete cache[k];
   if (state.pz === 'season' && D.games.length < 2) state.pz = 'game';
   render(); window.__rendered = true;
+  if (data.reportId) { const a = document.getElementById('c-pdf'); a.href = `/r/${data.reportId}/pdf`; a.hidden = false; }
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(() => { document.body.dataset.ready = '1'; }));
   const cur = D.games.find(g => g.file === D.currentFile) || D.games[D.games.length-1];
   if (cur) document.title = `${cur.umpire || 'Plate Umpire'} · ${shortDate(cur.Date)} · MyPlateReport`;
 }
