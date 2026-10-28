@@ -58,8 +58,9 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
     <h2 class="st">1 · Check umpire matches</h2>
     <p class="sub2">Green matches the roster exactly. Yellow is a likely match: check it. Red needs you to pick the umpire or skip the game.</p>
     <div class="summary" id="summary"></div>
+    <input type="search" id="find" placeholder="Search by date, team or venue" aria-label="Search games" style="max-width:340px;margin-bottom:10px">
     <div class="tw"><table>
-      <thead><tr><th><input type="checkbox" id="all" checked aria-label="Include all"></th><th>Date</th><th>Game</th><th>Name in report</th><th>Roster umpire</th><th>Match</th><th class="r">Pitches</th></tr></thead>
+      <thead><tr><th><input type="checkbox" id="all" checked aria-label="Include all"></th><th>Date</th><th>Game</th><th>Venue</th><th>Name in report</th><th>Roster umpire</th><th>Match</th><th class="r">Pitches</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
 
@@ -93,7 +94,8 @@ async function api(path, opts={}){
 }
 
 function match(name){
-  if (!name || norm(name) === 'tbd') return {status:'need', id:'', why:'No umpire named in the report'};
+  if (!name) return {status:'need', id:'', why:'Pick the plate umpire'};
+  if (norm(name) === 'tbd') return {status:'need', id:'', why:'No umpire named in the report'};
   const n = norm(name);
   const exact = roster.filter(u => norm(u.name) === n);
   if (exact.length === 1) return {status:'ok', id:exact[0].id, why:'Exact name'};
@@ -119,9 +121,12 @@ function draw(){
   const opts = `<option value="">Choose umpire…</option>` + roster.map(u => `<option value="${esc(u.id)}">${esc(u.name)}${(u.tags||[]).length?` (${esc(u.tags.join(', '))})`:''}</option>`).join('');
   $('rows').innerHTML = rows.map((r,i) => {
     const st = r.state(); if (filter !== 'all' && st !== filter) return '';
+    const q = $('find').value.trim().toLowerCase();
+    if (q && !`${r.g.Date} ${fmtDate(r.g.Date)} ${teamName(r.g.HomeTeam)} ${teamName(r.g.AwayTeam)} ${r.g.HomeTeam} ${r.g.AwayTeam} ${r.g.Stadium} ${r.g.umpireName||''}`.toLowerCase().includes(q)) return '';
+    const gno = (r.g.GameID || '').match(/-(\d+)$/), venue = `${(r.g.Stadium||'').replace(/([a-z])([A-Z])/g,'$1 $2')}${gno ? ` · Game ${gno[1]}` : ''}${/private/i.test(r.g.GameID||'') ? ' (private)' : ''}`;
     const label = {ok:'Exact', maybe:r.m.why, need:r.m.why, skip:'Skipped', done:`Imported · ${r.result}`}[st];
     return `<tr data-i="${i}"><td><input type="checkbox" class="inc" ${r.include?'checked':''} ${r.done?'disabled':''} aria-label="Include game"></td>
-      <td>${fmtDate(r.g.Date)}</td><td>${r.g.HomeTeam===r.g.AwayTeam ? `${esc(teamName(r.g.HomeTeam))} intrasquad` : `${esc(teamName(r.g.AwayTeam))} at ${esc(teamName(r.g.HomeTeam))}`}</td><td><b>${esc(r.g.umpireName || '(none)')}</b></td>
+      <td>${fmtDate(r.g.Date)}</td><td>${r.g.HomeTeam===r.g.AwayTeam ? `${esc(teamName(r.g.HomeTeam))} intrasquad` : `${esc(teamName(r.g.AwayTeam))} at ${esc(teamName(r.g.HomeTeam))}`}</td><td>${esc(venue)}</td><td><b>${esc(r.g.umpireName || '(not in file)')}</b></td>
       <td><select class="pick" ${r.done?'disabled':''}>${opts}</select></td><td><span class="pill ${st}">${esc(label)}</span></td><td class="r">${r.g.pitches.length}</td></tr>`;
   }).join('');
   $('rows').querySelectorAll('tr[data-i]').forEach(tr => { tr.querySelector('.pick').value = rows[+tr.dataset.i].id; });
@@ -140,7 +145,7 @@ $('bundle').addEventListener('change', async e => {
     const existingTeams = Object.fromEntries((await api('/admin/api/teams')).teams.map(t => [t.code, t.full_name]));
     if (!roster.length) throw new Error('Your roster is empty. Upload rosters on the Umpires page first.');
     rows = B.games.map(g => { const m = match(g.umpireName); return {
-      g, m, id: m.id, include: m.status !== 'need' || !!g.umpireName && norm(g.umpireName) !== 'tbd', done: false, result: '',
+      g, m, id: m.id, include: norm(g.umpireName) !== 'tbd', done: false, result: '',
       state(){ return this.done ? 'done' : !this.include ? 'skip' : !this.id ? 'need' : this.id === this.m.id ? this.m.status : 'ok'; } }; });
     const codes = [...new Set(B.games.flatMap(g => [g.HomeTeam, g.AwayTeam]).filter(Boolean))].sort();
     $('teams').innerHTML = codes.map(c => `<div><label for="t-${esc(c)}">${esc(c)}</label><input type="text" id="t-${esc(c)}" value="${esc(existingTeams[c] || (B.teams && B.teams[c] && B.teams[c][1]) || c)}" autocomplete="off"></div>`).join('');
@@ -149,6 +154,7 @@ $('bundle').addEventListener('change', async e => {
   } catch(err){ $('load-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; $('review').hidden = true; }
   e.target.value = '';
 });
+$('find').addEventListener('input', () => draw());
 $('summary').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b){ filter = b.dataset.f; draw(); } });
 $('rows').addEventListener('change', e => {
   const tr = e.target.closest('tr[data-i]'); if (!tr) return; const r = rows[+tr.dataset.i];
