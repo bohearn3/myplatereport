@@ -21,7 +21,7 @@ database_id = "5d4593ff-176d-4e3d-8fa7-343711e266d8"
 [browser]
 binding = "BROWSER"
 
-# PDF storage (Workers KV): add the namespace id once it's created in the dashboard
-# [[kv_namespaces]]
-# binding = "PDFS"
-# id = "<namespace id>"
+# PDF storage (Workers KV namespace: myplatereport-pdfs)
+[[kv_namespaces]]
+binding = "PDFS"
+id = "91108414826c4cd8b4817d541f429f62"
