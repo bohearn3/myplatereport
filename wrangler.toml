@@ -11,6 +11,11 @@ binding = "ASSETS"
 [vars]
 REPLY_TO = "bohearn3@gmail.com"
 
-# Coming next, once they're created in the Cloudflare dashboard:
-# [[d1_databases]]   -> umpires, games, pitches (season trends)
+# Umpires, games, pitches and report links (tables are created automatically on first use)
+[[d1_databases]]
+binding = "DB"
+database_name = "myplatereport"
+database_id = "5d4593ff-176d-4e3d-8fa7-343711e266d8"
+
+# Coming next:
 # [[r2_buckets]]     -> report PDFs
