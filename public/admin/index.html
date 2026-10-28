@@ -79,7 +79,10 @@
     <section class="step" id="s-ump" hidden>
       <h2><span>3</span>Plate umpire</h2>
       <label for="ump-pick">Choose from your roster</label>
-      <select id="ump-pick"><option value="">Loading roster…</option></select>
+      <div class="row2" style="grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)">
+        <div><select id="ump-conf" aria-label="Conference"><option value="">All conferences</option></select></div>
+        <div><select id="ump-pick"><option value="">Loading roster…</option></select></div>
+      </div>
       <div class="or">or type a new umpire</div>
       <label for="ump-name">Full name</label><input type="text" id="ump-name" autocomplete="off" placeholder="e.g., Brooks O'Hearn" required>
       <label for="ump-email">Email</label><input type="email" id="ump-email" autocomplete="off" placeholder="name@example.com" required>
@@ -112,10 +115,19 @@ async function loadRoster(){
   try {
     const r = await fetch('/admin/api/umpires'); const j = await r.json();
     roster = (j.umpires || []).filter(u => u.active);
-    sel.innerHTML = `<option value="">${roster.length ? 'Select an umpire…' : 'No umpires yet. Add them on the Umpires page.'}</option>` +
-      roster.map(u => `<option value="${esc(u.id)}">${esc(u.name)} · ${esc(u.email)}</option>`).join('');
+    const tags = [...new Map(roster.flatMap(u => u.tags || []).map(t => [t.toLowerCase(), t])).values()].sort((a,b)=>a.localeCompare(b));
+    $('ump-conf').innerHTML = `<option value="">All conferences</option>` + tags.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+    $('ump-conf').hidden = !tags.length;
+    fillPicker();
     if (preselect && roster.some(u => u.id === preselect)) { sel.value = preselect; pick(); }
   } catch(e) { sel.innerHTML = '<option value="">Roster unavailable. Type the umpire below.</option>'; }
+}
+function fillPicker(){
+  const sel = $('ump-pick'), cur = sel.value, c = $('ump-conf').value.toLowerCase();
+  const rows = roster.filter(u => !c || (u.tags || []).some(t => t.toLowerCase() === c));
+  sel.innerHTML = `<option value="">${roster.length ? (rows.length ? 'Select an umpire…' : 'No umpires in that conference') : 'No umpires yet. Add them on the Umpires page.'}</option>` +
+    rows.map(u => `<option value="${esc(u.id)}">${esc(u.name)}${(u.tags||[]).length ? ` (${esc(u.tags.join(', '))})` : ''}</option>`).join('');
+  if (rows.some(u => u.id === cur)) sel.value = cur;
 }
 function pick(){
   const u = roster.find(x => x.id === $('ump-pick').value);
@@ -175,6 +187,7 @@ drop.addEventListener('drop', e => handle(e.dataTransfer.files[0]));
   clearTimeout(tmr); tmr = setTimeout(pushPreview, 250); validate(); }));
 $('ump-email').addEventListener('input', validate);
 $('ump-pick').addEventListener('change', pick);
+$('ump-conf').addEventListener('change', fillPicker);
 ['ump-name','ump-email'].forEach(id => $(id).addEventListener('input', () => {
   const u = roster.find(x => x.id === $('ump-pick').value);
   if (u && ($('ump-name').value !== u.name || $('ump-email').value !== u.email)) $('ump-pick').value = '';

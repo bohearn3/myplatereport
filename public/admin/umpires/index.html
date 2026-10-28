@@ -33,6 +33,14 @@ tbody tr:last-child td{border-bottom:0}
 .pill.on{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
 .pill.off{background:var(--line);color:var(--muted)}
 .pill.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+select.tagsel{width:auto;min-width:170px}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:.74rem;font-weight:700;background:color-mix(in srgb,var(--powder) 20%,transparent);color:var(--deep);white-space:nowrap}
+.tag button{border:0;background:none;color:inherit;font:inherit;font-size:.9rem;line-height:1;padding:0 0 0 2px;cursor:pointer}
+.tagbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)}
+.tagbox input{border:0!important;padding:4px!important;flex:1;min-width:120px;width:auto!important;background:transparent!important}
+.tagbox:focus-within{outline:2px solid var(--powder);outline-offset:1px}
+.tagbox input:focus-visible{outline:none}
 .pill.new{background:color-mix(in srgb,var(--powder) 22%,transparent);color:var(--deep)}
 .card h2{font-family:var(--f-display);font-weight:800;font-size:1.5rem;text-transform:uppercase;margin:0}
 .card h3{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px}
@@ -65,15 +73,16 @@ tbody tr:last-child td{border-bottom:0}
     <p class="sub2" id="count">Loading the roster…</p>
     <div class="toolbar">
       <input type="search" id="q" placeholder="Search by name or email" aria-label="Search umpires">
+      <select id="tag-filter" class="tagsel" aria-label="Filter by conference"><option value="">All conferences</option></select>
       <button type="button" class="ghost" id="b-add">Add umpire</button>
       <label class="ghost filebtn" for="roster">Upload roster CSV<input type="file" id="roster" accept=".csv,text/csv"></label>
       <label class="check" style="margin:0"><input type="checkbox" id="show-inactive"> Show inactive</label>
     </div>
     <div class="tw"><table>
-      <thead><tr><th>Name</th><th>Email</th><th class="r">Games</th><th>Last game</th><th class="r">Last adj.</th><th class="r">Avg adj.</th><th>Status</th></tr></thead>
+      <thead><tr><th>Name</th><th>Conferences</th><th>Email</th><th class="r">Games</th><th>Last game</th><th class="r">Last adj.</th><th class="r">Avg adj.</th><th>Status</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
-    <p class="hint">Roster CSV: one umpire per row with a <b>Name</b> (or <b>First</b> and <b>Last</b>) column and an <b>Email</b> column. <b>Phone</b> and <b>Notes</b> are optional. Existing umpires are matched by email and updated.</p>
+    <p class="hint">Roster CSV: one umpire per row with a <b>Name</b> (or <b>First</b> and <b>Last</b>) column and an <b>Email</b> column. <b>Phone</b>, <b>Notes</b> and <b>Conference</b> are optional. You can also tag everyone in a file with one conference when you import. Existing umpires are matched by email and updated, and new conferences are added to the ones they already have.</p>
   </main>
 
   <aside class="side" id="side">
@@ -87,6 +96,8 @@ tbody tr:last-child td{border-bottom:0}
         <div><label for="f-phone">Phone (optional)</label><input type="text" id="f-phone" autocomplete="off"></div>
         <div><label for="f-notes">Notes (optional)</label><input type="text" id="f-notes" autocomplete="off"></div>
       </div>
+      <label for="f-tag-in">Conferences</label>
+      <div class="tagbox" id="f-tags"><input type="text" id="f-tag-in" list="tag-list" placeholder="Add a conference, press Enter" autocomplete="off"></div>
       <label class="check"><input type="checkbox" id="f-active" checked> Active (shows in the send list)</label>
       <div class="btns">
         <button type="submit" class="primary" id="f-save" style="width:auto;padding:10px 18px">Save</button>
@@ -101,11 +112,15 @@ tbody tr:last-child td{border-bottom:0}
   </aside>
 </div>
 
+<datalist id="tag-list"></datalist>
 <div class="modal" id="imp" hidden>
   <div class="box" role="dialog" aria-modal="true" aria-labelledby="imp-t">
     <h2 id="imp-t">Import roster</h2>
     <p class="sub2" id="imp-sum"></p>
-    <div class="tw" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Result</th></tr></thead><tbody id="imp-rows"></tbody></table></div>
+    <label for="imp-tag">Conference for everyone in this file (optional)</label>
+    <input type="text" id="imp-tag" list="tag-list" placeholder="e.g., WCC" autocomplete="off" style="max-width:320px">
+    <p class="hint" style="margin-bottom:12px">Added to each umpire's conferences. Umpires already on another conference keep both.</p>
+    <div class="tw" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Conference</th><th>Result</th></tr></thead><tbody id="imp-rows"></tbody></table></div>
     <div class="btns"><button type="button" class="primary" id="imp-go" style="width:auto;padding:10px 18px">Import</button><button type="button" class="ghost" id="imp-cancel">Cancel</button></div>
     <div id="imp-msg"></div>
   </div>
@@ -119,7 +134,8 @@ const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':
 const pct = v => v==null ? '–' : (v*100).toFixed(1)+'%';
 const fmtDate = s => { if(!s) return '–'; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
 const validEmail = s => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s||'');
-let list = [], selected = null, pending = [];
+let list = [], selected = null, pending = [], cardTags = [];
+const tagHtml = t => `<span class="tag">${esc(t)}</span>`;
 
 async function api(path, opts={}){
   const r = await fetch(path, {headers:{'content-type':'application/json'}, ...opts});
@@ -128,19 +144,28 @@ async function api(path, opts={}){
   return j;
 }
 async function load(){
-  try { list = (await api('/admin/api/umpires')).umpires; draw(); }
+  try { list = (await api('/admin/api/umpires')).umpires; fillTags(); draw(); }
   catch(e){ $('count').textContent = e.message; }
+}
+function allTags(){ const m = new Map(); list.forEach(u => (u.tags||[]).forEach(t => { const k = t.toLowerCase(); if (!m.has(k)) m.set(k, t); })); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
+function fillTags(){
+  const tags = allTags(), cur = $('tag-filter').value;
+  $('tag-filter').innerHTML = `<option value="">All conferences</option>` + tags.map(t => `<option value="${esc(t)}">${esc(t)} (${list.filter(u => (u.tags||[]).some(x => x.toLowerCase()===t.toLowerCase())).length})</option>`).join('') + `<option value="__none">No conference</option>`;
+  $('tag-filter').value = [...$('tag-filter').options].some(o => o.value === cur) ? cur : '';
+  $('tag-list').innerHTML = tags.map(t => `<option value="${esc(t)}">`).join('');
 }
 function draw(){
   const q = $('q').value.trim().toLowerCase(), inact = $('show-inactive').checked;
-  const rows = list.filter(u => (inact || u.active) && (!q || u.name.toLowerCase().includes(q) || u.email.includes(q)));
+  const tf = $('tag-filter').value;
+  const hasTag = u => tf === '' ? true : tf === '__none' ? !(u.tags||[]).length : (u.tags||[]).some(t => t.toLowerCase() === tf.toLowerCase());
+  const rows = list.filter(u => (inact || u.active) && hasTag(u) && (!q || u.name.toLowerCase().includes(q) || u.email.includes(q) || (u.tags||[]).some(t => t.toLowerCase().includes(q))));
   const active = list.filter(u=>u.active).length;
-  $('count').textContent = `${active} active umpire${active===1?'':'s'}${list.length>active?`, ${list.length-active} inactive`:''}.`;
+  $('count').textContent = `${active} active umpire${active===1?'':'s'}${list.length>active?`, ${list.length-active} inactive`:''}.` + (tf ? ` Showing ${rows.length} in ${tf === '__none' ? 'no conference' : tf}.` : '');
   $('rows').innerHTML = rows.map(u => `<tr data-id="${esc(u.id)}" class="${selected===u.id?'sel':''}" tabindex="0">
-    <td><b>${esc(u.name)}</b></td><td>${esc(u.email)}</td><td class="r">${u.games}</td><td>${fmtDate(u.last_game)}</td>
+    <td><b>${esc(u.name)}</b></td><td><div class="tags">${(u.tags||[]).map(tagHtml).join('')}</div></td><td>${esc(u.email)}</td><td class="r">${u.games}</td><td>${fmtDate(u.last_game)}</td>
     <td class="r">${pct(u.last_adj)}</td><td class="r">${pct(u.avg_adj)}</td>
     <td><span class="pill ${u.active?'on':'off'}">${u.active?'Active':'Inactive'}</span></td></tr>`).join('')
-    || `<tr><td colspan="7" class="empty">${list.length ? 'No umpires match that search.' : 'No umpires yet. Add one or upload your roster.'}</td></tr>`;
+    || `<tr><td colspan="8" class="empty">${list.length ? 'No umpires match that search.' : 'No umpires yet. Add one or upload your roster.'}</td></tr>`;
 }
 async function open(id){
   selected = id; draw();
@@ -148,12 +173,14 @@ async function open(id){
   if (!id){ // new umpire
     $('c-eyebrow').textContent = 'New umpire'; $('c-title').textContent = 'Add umpire';
     ['f-name','f-email','f-phone','f-notes'].forEach(k=>$(k).value=''); $('f-active').checked = true;
+    const tf = $('tag-filter').value; cardTags = tf && tf !== '__none' ? [tf] : []; drawCardTags();
     $('history').hidden = true; $('f-send').hidden = true; $('f-name').focus(); return;
   }
   const d = await api('/admin/api/umpires/'+id);
   const u = d.umpire;
   $('c-eyebrow').textContent = `Umpire since ${fmtDate(u.created_at.slice(0,10))}`; $('c-title').textContent = u.name;
   $('f-name').value = u.name; $('f-email').value = u.email; $('f-phone').value = u.phone||''; $('f-notes').value = u.notes||''; $('f-active').checked = !!u.active;
+  cardTags = [...(u.tags||[])]; drawCardTags();
   $('f-send').hidden = false; $('f-send').href = `/admin/?umpire=${encodeURIComponent(u.id)}`;
   const byGame = {}; d.reports.forEach(r => { (byGame[r.game_id] ||= []).push(r); });
   $('history').hidden = false;
@@ -167,12 +194,29 @@ async function open(id){
 }
 $('rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) open(tr.dataset.id); });
 $('rows').addEventListener('keydown', e => { if (e.key==='Enter'){ const tr = e.target.closest('tr[data-id]'); if (tr) open(tr.dataset.id); } });
-$('q').addEventListener('input', draw); $('show-inactive').addEventListener('change', draw);
+$('q').addEventListener('input', draw); $('show-inactive').addEventListener('change', draw); $('tag-filter').addEventListener('change', draw);
 $('b-add').addEventListener('click', () => open(null));
+function drawCardTags(){
+  $('f-tags').querySelectorAll('.tag').forEach(n => n.remove());
+  const inp = $('f-tag-in');
+  cardTags.forEach((t,i) => { const sp = document.createElement('span'); sp.className = 'tag'; sp.innerHTML = `${esc(t)}<button type="button" aria-label="Remove ${esc(t)}" data-i="${i}">×</button>`; $('f-tags').insertBefore(sp, inp); });
+}
+function addCardTag(){
+  const inp = $('f-tag-in'); const vals = inp.value.split(',').map(v => v.trim()).filter(Boolean);
+  vals.forEach(v => { if (!cardTags.some(t => t.toLowerCase() === v.toLowerCase())) cardTags.push(v.slice(0,30)); });
+  inp.value = ''; drawCardTags();
+}
+$('f-tag-in').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addCardTag(); }
+  else if (e.key === 'Backspace' && !e.target.value && cardTags.length) { cardTags.pop(); drawCardTags(); }
+});
+$('f-tag-in').addEventListener('change', addCardTag);
+$('f-tags').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) { cardTags.splice(+b.dataset.i, 1); drawCardTags(); } else $('f-tag-in').focus(); });
 
 $('card').addEventListener('submit', async e => {
   e.preventDefault();
-  const body = {name:$('f-name').value, email:$('f-email').value, phone:$('f-phone').value, notes:$('f-notes').value, active:$('f-active').checked};
+  if ($('f-tag-in').value.trim()) addCardTag();
+  const body = {name:$('f-name').value, email:$('f-email').value, phone:$('f-phone').value, notes:$('f-notes').value, tags:cardTags, active:$('f-active').checked};
   if (!body.name.trim() || !validEmail(body.email.trim())){ $('f-msg').innerHTML = '<div class="msg err">Enter a name and a valid email.</div>'; return; }
   try {
     if (selected) await api('/admin/api/umpires/'+selected, {method:'PUT', body:JSON.stringify(body)});
@@ -189,11 +233,11 @@ function mapRoster(text){
   const h = rows[0].map(x => x.trim().toLowerCase().replace(/[^a-z]/g,''));
   const find = (...names) => h.findIndex(x => names.includes(x));
   const iName = find('name','fullname','umpire','umpirename'), iFirst = find('first','firstname'), iLast = find('last','lastname','surname');
-  const iEmail = find('email','emailaddress','email1'), iPhone = find('phone','cell','mobile','phonenumber','cellphone'), iNotes = find('notes','note','level','crew');
+  const iEmail = find('email','emailaddress','email1'), iPhone = find('phone','cell','mobile','phonenumber','cellphone'), iNotes = find('notes','note','level','crew'), iTag = find('conference','conf','tag','tags','league','conferences');
   if (iEmail < 0 || (iName < 0 && iFirst < 0)) return {error:'The roster needs an Email column and a Name column (or First and Last).'};
   return {rows: rows.slice(1).map(r => ({
     name: iName >= 0 ? r[iName] : [r[iFirst], iLast>=0 ? r[iLast] : ''].join(' ').trim(),
-    email: (r[iEmail]||'').trim().toLowerCase(), phone: iPhone>=0 ? r[iPhone] : '', notes: iNotes>=0 ? r[iNotes] : ''
+    email: (r[iEmail]||'').trim().toLowerCase(), phone: iPhone>=0 ? r[iPhone] : '', notes: iNotes>=0 ? r[iNotes] : '', tags: iTag>=0 ? r[iTag] : ''
   })).filter(r => r.name || r.email)};
 }
 $('roster').addEventListener('change', async e => {
@@ -207,9 +251,10 @@ $('roster').addEventListener('change', async e => {
   $('imp-rows').innerHTML = m.rows.map(r => {
     const bad = !r.name.trim() || !validEmail(r.email), upd = known.has(r.email);
     bad ? nBad++ : upd ? nUpd++ : nNew++;
-    return `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td><span class="pill ${bad?'err':upd?'on':'new'}">${bad?'Skipped: missing name or email':upd?'Update':'New'}</span></td></tr>`;
+    return `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${esc(r.tags)}</td><td><span class="pill ${bad?'err':upd?'on':'new'}">${bad?'Skipped: missing name or email':upd?'Update':'New'}</span></td></tr>`;
   }).join('');
   $('imp-sum').textContent = `${f.name}: ${nNew} new, ${nUpd} already on the roster (will be updated)${nBad?`, ${nBad} skipped`:''}.`;
+  $('imp-tag').value = $('tag-filter').value && $('tag-filter').value !== '__none' ? $('tag-filter').value : '';
   $('imp-go').hidden = !(nNew + nUpd); $('imp-go').textContent = `Import ${nNew + nUpd} umpire${nNew+nUpd===1?'':'s'}`;
   $('imp').hidden = false; $('imp-go').focus();
 });
@@ -220,8 +265,10 @@ $('imp-go').addEventListener('click', async () => {
   $('imp-go').disabled = true;
   try {
     const rows = pending.filter(r => r.name.trim() && validEmail(r.email));
-    const r = await api('/admin/api/umpires/import', {method:'POST', body:JSON.stringify({rows})});
-    $('imp-msg').innerHTML = `<div class="msg ok">Imported: ${r.created} new, ${r.updated} updated.${r.errors.length?` ${r.errors.length} skipped.`:''}</div>`;
+    const tag = $('imp-tag').value.trim();
+    const r = await api('/admin/api/umpires/import', {method:'POST', body:JSON.stringify({rows, tag})});
+    if (tag) $('tag-filter').value = tag;
+    $('imp-msg').innerHTML = `<div class="msg ok">Imported${tag ? ` into ${esc(tag)}` : ''}: ${r.created} new, ${r.updated} updated.${r.errors.length?` ${r.errors.length} skipped.`:''}</div>`;
     await load(); setTimeout(() => $('imp').hidden = true, 1200);
   } catch(err){ $('imp-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
   finally { $('imp-go').disabled = false; }

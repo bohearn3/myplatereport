@@ -1,0 +1,20 @@
+import { DatabaseSync } from 'node:sqlite';
+import worker from '../src/index.js';
+const sql = new DatabaseSync(':memory:');
+// start from the v1 schema that's live today, to test the upgrade path
+sql.exec(`CREATE TABLE umpires (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL);
+INSERT INTO umpires VALUES ('old1', 'Brooks O''Hearn', 'brooks@example.com', '2026-10-27');`);
+const norm = a => a.map(v => v === undefined ? null : v);
+const stmt = (q, args = []) => ({ bind: (...a) => stmt(q, norm(a)), first: async () => sql.prepare(q).get(...args) ?? null, run: async () => (sql.prepare(q).run(...args), {}), all: async () => ({ results: sql.prepare(q).all(...args) }) });
+const env = { DB: { prepare: q => stmt(q), batch: async l => { for (const s of l) await s.run(); } }, ASSETS: { fetch: async () => new Response('') } };
+const H = { 'cf-access-authenticated-user-email': 'a@b.c', 'content-type': 'application/json' };
+const req = (path, method = 'GET', body) => worker.fetch(new Request('https://x.com' + path, { method, headers: H, body: body ? JSON.stringify(body) : undefined }), env);
+const show = async () => (await (await req('/admin/api/umpires')).json()).umpires.map(u => `${u.name} [${u.tags.join(', ')}]`);
+let r = await req('/admin/api/umpires/import', 'POST', { tag: 'WCC', rows: [{ name: "Brooks O'Hearn", email: 'brooks@example.com' }, { name: 'Scott Jones', email: 'scott@example.com' }] });
+console.log('import WCC', await r.json(), await show());
+r = await req('/admin/api/umpires/import', 'POST', { tag: 'Big West', rows: [{ name: 'Scott Jones', email: 'scott@example.com' }, { name: 'Pete Saucedo', email: 'pete@example.com', tags: 'Mountain West; wcc' }] });
+console.log('import Big West', await r.json(), await show());
+const scott = (await (await req('/admin/api/umpires')).json()).umpires.find(u => u.email === 'scott@example.com');
+r = await req('/admin/api/umpires/' + scott.id, 'PUT', { name: 'Scott Jones', email: 'scott@example.com', tags: ['Big West'], active: true });
+console.log('edit scott ->', r.status, await show());
+console.log('schema', sql.prepare("SELECT v FROM meta WHERE k='schema'").get());

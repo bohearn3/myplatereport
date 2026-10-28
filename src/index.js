@@ -48,6 +48,10 @@ async function ensureSchema(db) {
     for (const q of add) { try { await db.prepare(q).run(); } catch (e) { /* column already exists */ } }
     await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '2') ON CONFLICT(k) DO UPDATE SET v = '2'`).run();
   }
+  if (ver < 3) {
+    try { await db.prepare(`ALTER TABLE umpires ADD COLUMN tags TEXT`).run(); } catch (e) { /* already there */ }
+    await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '3') ON CONFLICT(k) DO UPDATE SET v = '3'`).run();
+  }
   schemaReady = true;
 }
 
@@ -204,44 +208,65 @@ async function getReport(id, env) {
 /* ---------------- umpires (admin) ---------------- */
 async function listUmpires(env) {
   const { results } = await env.DB.prepare(`
-    SELECT u.id, u.name, u.email, u.phone, u.active, u.notes, u.created_at,
+    SELECT u.id, u.name, u.email, u.phone, u.active, u.notes, u.tags, u.created_at,
       (SELECT COUNT(*) FROM games g WHERE g.umpire_id = u.id) AS games,
       (SELECT MAX(date) FROM games g WHERE g.umpire_id = u.id) AS last_game,
       (SELECT AVG(adj) FROM games g WHERE g.umpire_id = u.id AND adj IS NOT NULL) AS avg_adj,
       (SELECT adj FROM games g WHERE g.umpire_id = u.id ORDER BY date DESC, created_at DESC LIMIT 1) AS last_adj
     FROM umpires u ORDER BY u.active DESC, u.name COLLATE NOCASE`).all();
-  return json({ umpires: results });
+  return json({ umpires: results.map(u => ({ ...u, tags: parseTags(u.tags) })) });
 }
 
 async function getUmpire(id, env) {
-  const u = await env.DB.prepare(`SELECT id, name, email, phone, active, notes, created_at FROM umpires WHERE id = ?`).bind(id).first();
+  const u = await env.DB.prepare(`SELECT id, name, email, phone, active, notes, tags, created_at FROM umpires WHERE id = ?`).bind(id).first();
   if (!u) return json({ error: 'Umpire not found.' }, 404);
   const games = (await env.DB.prepare(`SELECT g.id, g.date, g.home, g.away, g.stadium, g.adj, g.raw, g.decisions, g.misses, g.edge,
       th.full_name AS home_name, ta.full_name AS away_name
     FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away
     WHERE g.umpire_id = ? ORDER BY g.date DESC, g.created_at DESC`).bind(id).all()).results;
   const reports = (await env.DB.prepare(`SELECT id, game_id, created_at, created_by, email_status, emailed_at, pdf_status FROM reports WHERE umpire_id = ? ORDER BY created_at DESC`).bind(id).all()).results;
-  return json({ umpire: u, games, reports });
+  return json({ umpire: { ...u, tags: parseTags(u.tags) }, games, reports });
 }
 
+// Tags (conferences): stored as a JSON array, case-insensitive unique, max 12 per umpire
+function parseTags(v) { try { const a = JSON.parse(v || '[]'); return Array.isArray(a) ? a : []; } catch { return []; } }
+function cleanTags(v) {
+  const list = Array.isArray(v) ? v : String(v || '').split(/[,;|]/);
+  const out = [], seen = new Set();
+  for (const t of list) {
+    const tag = String(t || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+    if (tag && !seen.has(tag.toLowerCase())) { seen.add(tag.toLowerCase()); out.push(tag); }
+  }
+  return out.slice(0, 12);
+}
+// Match new tags to the spelling already in use (so "wcc" becomes "WCC")
+async function tagSpellings(env) {
+  const m = new Map();
+  for (const r of (await env.DB.prepare('SELECT tags FROM umpires WHERE tags IS NOT NULL').all()).results)
+    for (const t of parseTags(r.tags)) if (!m.has(t.toLowerCase())) m.set(t.toLowerCase(), t);
+  return m;
+}
+const canon = (tags, m) => cleanTags(tags.map(t => { const k = t.toLowerCase(); if (!m.has(k)) m.set(k, t); return m.get(k); }));
 function cleanUmpire(o) {
   const name = String(o.name || '').replace(/\s+/g, ' ').trim().slice(0, 120);
   const email = String(o.email || '').trim().toLowerCase().slice(0, 200);
   const phone = String(o.phone || '').trim().slice(0, 40) || null;
   const notes = String(o.notes || '').trim().slice(0, 500) || null;
-  return { name, email, phone, notes };
+  return { name, email, phone, notes, tags: cleanTags(o.tags) };
 }
 
-async function upsertUmpire(env, o) {
+async function upsertUmpire(env, o, spell) {
   const u = cleanUmpire(o);
+  u.tags = canon(u.tags, spell || await tagSpellings(env));
   if (!u.name || !validEmail(u.email)) return { error: `Missing name or valid email${u.name ? ` for ${u.name}` : ''}.` };
-  const ex = await env.DB.prepare('SELECT id FROM umpires WHERE email = ?').bind(u.email).first();
+  const ex = await env.DB.prepare('SELECT id, tags FROM umpires WHERE email = ?').bind(u.email).first();
   if (ex) {
-    await env.DB.prepare('UPDATE umpires SET name = ?, phone = COALESCE(?, phone), notes = COALESCE(?, notes), active = 1 WHERE id = ?').bind(u.name, u.phone, u.notes, ex.id).run();
+    const tags = cleanTags([...parseTags(ex.tags), ...u.tags]); // add new conferences, keep existing ones
+    await env.DB.prepare('UPDATE umpires SET name = ?, phone = COALESCE(?, phone), notes = COALESCE(?, notes), tags = ?, active = 1 WHERE id = ?').bind(u.name, u.phone, u.notes, JSON.stringify(tags), ex.id).run();
     return { id: ex.id, updated: true };
   }
   const id = token(9);
-  await env.DB.prepare('INSERT INTO umpires (id, name, email, phone, notes, active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)').bind(id, u.name, u.email, u.phone, u.notes, now()).run();
+  await env.DB.prepare('INSERT INTO umpires (id, name, email, phone, notes, tags, active, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)').bind(id, u.name, u.email, u.phone, u.notes, JSON.stringify(u.tags), now()).run();
   return { id, created: true };
 }
 
@@ -260,9 +285,11 @@ async function adminApi(request, env, path) {
   }
   if (path === '/admin/api/umpires/import' && m === 'POST') {
     const rows = Array.isArray(body?.rows) ? body.rows.slice(0, 1000) : [];
+    const rosterTags = cleanTags(body?.tag);
+    const spell = await tagSpellings(env);
     let created = 0, updated = 0; const errors = [];
     for (const row of rows) {
-      const r = await upsertUmpire(env, row);
+      const r = await upsertUmpire(env, { ...row, tags: [...cleanTags(row.tags), ...rosterTags] }, spell);
       if (r.error) errors.push(r.error); else if (r.created) created++; else updated++;
     }
     return json({ ok: true, created, updated, errors });
@@ -272,10 +299,11 @@ async function adminApi(request, env, path) {
   if (um && m === 'PUT') {
     const u = cleanUmpire(body || {});
     if (!u.name || !validEmail(u.email)) return json({ error: 'Enter a name and a valid email.' }, 400);
+    u.tags = canon(u.tags, await tagSpellings(env));
     const clash = await env.DB.prepare('SELECT id FROM umpires WHERE email = ? AND id <> ?').bind(u.email, um[1]).first();
     if (clash) return json({ error: 'Another umpire already uses that email.' }, 409);
-    await env.DB.prepare('UPDATE umpires SET name = ?, email = ?, phone = ?, notes = ?, active = ? WHERE id = ?')
-      .bind(u.name, u.email, u.phone, u.notes, body.active === false || body.active === 0 ? 0 : 1, um[1]).run();
+    await env.DB.prepare('UPDATE umpires SET name = ?, email = ?, phone = ?, notes = ?, tags = ?, active = ? WHERE id = ?')
+      .bind(u.name, u.email, u.phone, u.notes, JSON.stringify(u.tags), body.active === false || body.active === 0 ? 0 : 1, um[1]).run();
     return json({ ok: true });
   }
   return json({ error: 'Not found.' }, 404);
