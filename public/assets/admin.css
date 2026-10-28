@@ -38,3 +38,10 @@ button.primary:disabled{opacity:.4;cursor:not-allowed}
 .filebtn:focus-within{outline:2px solid var(--powder);outline-offset:1px}
 .hint{font-size:.8rem;color:var(--muted);margin-top:6px}
 .check input{width:auto;margin:0}
+.who{display:flex;align-items:center;gap:10px;color:#c5d2de;font-size:.82rem}
+.who b{color:#F3F6F9;font-weight:600}
+.who button{font:inherit;font-weight:600;font-size:.82rem;background:none;border:1px solid #2b3542;color:#c5d2de;border-radius:8px;padding:6px 10px;cursor:pointer}
+.who button:hover{border-color:var(--powder)}
+.nav-wrap{margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.nav-wrap .nav{margin-left:0}
+.readonly-note{font-size:.82rem;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:8px 10px;margin-top:10px}

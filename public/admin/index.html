@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/admin/admin.css">
+<link rel="stylesheet" href="/assets/admin.css">
 <style>
 /* Layout: admin workbench. Narrow form column on the left (file -> teams -> umpire -> send),
    live report preview filling the right. Stacks on small screens. */
@@ -49,7 +49,7 @@
 </style>
 </head>
 <body>
-<header class="band"><img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201"><nav class="nav"><a href="/admin/" aria-current="page">Send a report</a><a href="/admin/umpires/">Umpires</a><a href="/admin/import/">Season import</a></nav></header>
+<header class="band"><img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201"><nav id="nav"></nav></header>
 <div class="work">
   <form class="form" id="f" novalidate>
     <section class="step">
@@ -102,18 +102,19 @@
   </div>
 </div>
 
+<script src="/assets/admin.js"></script>
 <script src="/js/engine.js"></script>
 <script src="/js/trackman-csv.js"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
 const KNOWN = {PAC_TIG:['Pacific','Pacific Tigers'],SEA_RED:['Seattle U','Seattle University Redhawks'],SAN_TOR:['San Diego','San Diego Toreros'],ORE_BEA:['Oregon State','Oregon State Beavers'],FRE_BUL:['Fresno State','Fresno State Bulldogs'],BYU_COU:['BYU','BYU Cougars'],STM_GAE:["Saint Mary's","Saint Mary's Gaels"],LOY_LIO:['LMU','Loyola Marymount Lions'],GON_BUL:['Gonzaga','Gonzaga Bulldogs'],POR_PIL:['Portland','Portland Pilots'],SAN_BRO:['Santa Clara','Santa Clara Broncos'],SAN_DON:['San Francisco','San Francisco Dons'],PEP_WAV:['Pepperdine','Pepperdine Waves']};
-let parsed = null, ready = false, roster = [], tmr;
+let parsed = null, ready = false, roster = [], tmr, ME = null;
 const preselect = new URLSearchParams(location.search).get('umpire');
 async function loadRoster(){
   const sel = $('ump-pick');
   try {
-    const r = await fetch('/admin/api/umpires'); const j = await r.json();
+    const r = await fetch(MPR.base + '/umpires'); const j = await r.json();
     roster = (j.umpires || []).filter(u => u.active);
     const tags = [...new Map(roster.flatMap(u => u.tags || []).map(t => [t.toLowerCase(), t])).values()].sort((a,b)=>a.localeCompare(b));
     $('ump-conf').innerHTML = `<option value="">All conferences</option>` + tags.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
@@ -192,13 +193,22 @@ $('ump-conf').addEventListener('change', fillPicker);
   const u = roster.find(x => x.id === $('ump-pick').value);
   if (u && ($('ump-name').value !== u.name || $('ump-email').value !== u.email)) $('ump-pick').value = '';
 }));
-loadRoster();
+MPR.ready.then(me => {
+  ME = me;
+  if (!MPR.can(me, 'send')) { location.replace('/coord/'); return; }
+  // Send tier: pick from the roster only (new umpires are added by the conference's full-control coordinator or the site admin).
+  if (!MPR.can(me, 'full')) {
+    document.querySelector('.or').hidden = true;
+    ['ump-name','ump-email'].forEach(id => { $(id).readOnly = true; $(id).placeholder = 'Choose from your roster above'; });
+  }
+  loadRoster();
+});
 
 $('f').addEventListener('submit', async e => {
   e.preventDefault(); if ($('send').disabled) return;
   $('send').disabled = true; $('send').textContent = 'Building PDF and sending…'; $('send-msg').innerHTML = '';
   try {
-    const r = await fetch('/admin/api/reports', {method:'POST', headers:{'content-type':'application/json'},
+    const r = await fetch(MPR.base + '/reports', {method:'POST', headers:{'content-type':'application/json'},
       body: JSON.stringify({umpire:{name:$('ump-name').value.trim(), email:$('ump-email').value.trim()}, report: payload()})});
     const j = await r.json().catch(()=>({}));
     if (!r.ok) throw new Error(j.error || `The server returned ${r.status}.`);

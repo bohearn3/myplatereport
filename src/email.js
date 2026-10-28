@@ -44,3 +44,38 @@ Open your full report: ${url}${pdf ? '\nA PDF copy is attached.' : ''}
 This link is private to you. Reply to this email with questions.`;
   return { subject, html, text };
 }
+
+// Coordinator sign-in code and invitation
+const shell = (inner) => `<!doctype html><html><body style="margin:0;background:#F3F6F9">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F6F9"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
+  <tr><td style="background:#0D1117;border-radius:12px 12px 0 0;padding:18px 22px">
+    <img src="https://myplatereport.com/img/bb-collegiate-umpires-dark.png" width="220" alt="BB Collegiate Umpires" style="display:block;border:0;width:220px;height:auto"></td></tr>
+  <tr><td style="background:#FFFFFF;padding:24px 22px;font:15px/1.55 Arial,sans-serif;color:#0D1117">${inner}</td></tr>
+</table></td></tr></table></body></html>`;
+
+export function codeEmail({ name, code }) {
+  const first = String(name || '').split(' ')[0] || 'Hi';
+  return {
+    subject: `Your MyPlateReport sign-in code: ${code}`,
+    html: shell(`<p style="margin:0 0 14px">${esc(first)}, here is your sign-in code:</p>
+      <p style="margin:0 0 14px;font:800 34px/1 Arial Narrow,Arial,sans-serif;letter-spacing:.18em">${esc(code)}</p>
+      <p style="margin:0;color:#5A6573;font-size:13px">It works for 10 minutes. If you didn't try to sign in, you can ignore this email.</p>`),
+    text: `${first}, your MyPlateReport sign-in code is ${code}. It works for 10 minutes. If you didn't try to sign in, ignore this email.`
+  };
+}
+
+export function inviteEmail({ name, conferences, tier, url }) {
+  const first = String(name || '').split(' ')[0] || 'Hi';
+  const what = { view: 'view your umpires, their reports and trends', send: 'view your umpires and send them postgame reports', full: 'view your umpires, send reports and manage your conference roster' }[tier] || 'view your umpires';
+  const conf = (conferences || []).join(', ');
+  return {
+    subject: `You're set up on MyPlateReport${conf ? ` for ${conf}` : ''}`,
+    html: shell(`<p style="margin:0 0 12px">${esc(first)}, you now have coordinator access on MyPlateReport${conf ? ` for <b>${esc(conf)}</b>` : ''}. You can ${esc(what)}.</p>
+      <p style="margin:0 0 16px">Sign in with this email address. We'll send you a 6-digit code each time; there's no password.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#0D1117;border-radius:10px">
+        <a href="${esc(url)}" style="display:inline-block;padding:13px 22px;font:700 15px Arial,sans-serif;color:#FFFFFF;text-decoration:none">Sign in to MyPlateReport</a></td></tr></table>
+      <p style="margin:16px 0 0;color:#5A6573;font-size:13px">${esc(url)}</p>`),
+    text: `${first}, you now have coordinator access on MyPlateReport${conf ? ` for ${conf}` : ''}. You can ${what}.\n\nSign in with this email address at ${url}. We'll email you a 6-digit code each time; there's no password.`
+  };
+}

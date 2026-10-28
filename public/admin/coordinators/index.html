@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Coordinators · MyPlateReport</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/admin.css">
+<style>
+/* Layout: coordinator list on the left, the selected coordinator's access card on the right. */
+.page{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,420px);min-height:0}
+.list{padding:20px;overflow:auto;min-width:0}
+.side{border-left:1px solid var(--line);padding:20px;overflow:auto;background:var(--surface)}
+h1.pg{font-family:var(--f-display);font-weight:800;font-size:1.8rem;text-transform:uppercase;margin:0 0 4px}
+.sub2{color:var(--muted);margin:0 0 16px;font-size:.9rem;max-width:70ch}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:color-mix(in srgb,var(--powder) 8%,transparent)}
+tbody tr.sel td{background:color-mix(in srgb,var(--powder) 18%,transparent)}
+tbody tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.74rem;font-weight:700}
+.pill.on{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.pill.off{background:var(--line);color:var(--muted)}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:.74rem;font-weight:700;background:color-mix(in srgb,var(--powder) 20%,transparent);color:var(--deep);white-space:nowrap;margin-right:4px}
+.tag button{border:0;background:none;color:inherit;font:inherit;font-size:.9rem;line-height:1;padding:0 0 0 2px;cursor:pointer}
+.tagbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface)}
+.tagbox input{border:0!important;padding:4px!important;flex:1;min-width:120px;width:auto!important;background:transparent!important}
+.tagbox:focus-within{outline:2px solid var(--powder);outline-offset:1px}
+.tagbox input:focus-visible{outline:none}
+.card h2{font-family:var(--f-display);font-weight:800;font-size:1.5rem;text-transform:uppercase;margin:0}
+.tiers{display:grid;gap:8px;margin-top:4px}
+.tier{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;margin:0;color:var(--ink);font-size:.88rem;font-weight:500}
+.tier input{width:auto;margin-top:3px}
+.tier b{display:block;font-size:.92rem}
+.tier span{color:var(--muted)}
+.tier:has(input:checked){border-color:var(--powder);background:color-mix(in srgb,var(--powder) 10%,transparent)}
+.check{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:.9rem;color:var(--ink)}
+.btns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.empty{color:var(--muted);text-align:center;padding:40px 10px}
+.meta{font-size:.82rem;color:var(--muted);margin-top:12px}
+@media (max-width:900px){html,body{height:auto}.page{grid-template-columns:1fr}.side{border-left:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header class="band">
+  <img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201">
+  <nav id="nav"></nav>
+</header>
+<div class="page">
+  <main class="list">
+    <h1 class="pg">Coordinators</h1>
+    <p class="sub2">Conference coordinators sign in at <b>myplatereport.com/coord</b> with a code sent to their email. They only see umpires tagged with their conferences, including all of those umpires' games and trends. Your own access stays on the Cloudflare sign-in.</p>
+    <div class="toolbar"><button type="button" class="ghost" id="b-add">Add coordinator</button></div>
+    <div class="tw"><table>
+      <thead><tr><th>Name</th><th>Conferences</th><th>Access</th><th>Email</th><th>Last sign-in</th><th>Status</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </main>
+  <aside class="side">
+    <div class="empty" id="side-empty">Select a coordinator, or add one.</div>
+    <form class="card" id="card" hidden novalidate>
+      <div class="eyebrow" id="c-eyebrow">Coordinator</div>
+      <h2 id="c-title"></h2>
+      <label for="f-name">Full name</label><input type="text" id="f-name" autocomplete="off" required>
+      <label for="f-email">Email (they sign in with this)</label><input type="email" id="f-email" autocomplete="off" required>
+      <label for="f-conf-in">Conferences</label>
+      <div class="tagbox" id="f-confs"><input type="text" id="f-conf-in" list="conf-list" placeholder="Add a conference, press Enter" autocomplete="off"></div>
+      <datalist id="conf-list"></datalist>
+      <label>Access</label>
+      <div class="tiers" role="radiogroup" aria-label="Access level">
+        <label class="tier"><input type="radio" name="tier" value="view" checked><div><b>View only</b><span>Roster, trends and reports for their umpires.</span></div></label>
+        <label class="tier"><input type="radio" name="tier" value="send"><div><b>View & send</b><span>Also upload Trackman files and email reports to their umpires.</span></div></label>
+        <label class="tier"><input type="radio" name="tier" value="full"><div><b>Full control of their conference</b><span>Also add and edit umpires and upload rosters for their conferences.</span></div></label>
+      </div>
+      <label class="check"><input type="checkbox" id="f-active" checked> Active (can sign in)</label>
+      <div class="btns">
+        <button type="submit" class="primary" id="f-save" style="width:auto;padding:10px 18px">Save</button>
+        <button type="button" class="ghost" id="f-invite">Email them a sign-in invite</button>
+      </div>
+      <div id="f-msg"></div>
+      <p class="meta" id="f-meta"></p>
+    </form>
+  </aside>
+</div>
+<script src="/assets/admin.js"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const when = s => s ? new Date(s).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : 'Never';
+const TIER = {view:'View only', send:'View & send', full:'Full control'};
+let list = [], selected = null, confs = [], known = [];
+async function api(path, opts={}){
+  const r = await fetch(MPR.base + path, {headers:{'content-type':'application/json'}, ...opts});
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(j.error || `The server returned ${r.status}.`);
+  return j;
+}
+async function load(){
+  list = (await api('/coordinators')).coordinators;
+  try {
+    const u = (await api('/umpires')).umpires; const m = new Map();
+    u.forEach(x => (x.tags||[]).forEach(t => { if (!m.has(t.toLowerCase())) m.set(t.toLowerCase(), t); }));
+    list.forEach(c => c.conferences.forEach(t => { if (!m.has(t.toLowerCase())) m.set(t.toLowerCase(), t); }));
+    known = [...m.values()].sort((a,b)=>a.localeCompare(b));
+    $('conf-list').innerHTML = known.map(t => `<option value="${esc(t)}">`).join('');
+  } catch(e){}
+  draw();
+}
+function draw(){
+  $('rows').innerHTML = list.map(c => `<tr data-id="${esc(c.id)}" class="${selected===c.id?'sel':''}" tabindex="0">
+    <td><b>${esc(c.name)}</b></td><td>${c.conferences.map(t => `<span class="tag">${esc(t)}</span>`).join('')}</td><td>${TIER[c.tier]}</td>
+    <td>${esc(c.email)}</td><td>${when(c.last_login)}</td><td><span class="pill ${c.active?'on':'off'}">${c.active?'Active':'Off'}</span></td></tr>`).join('')
+    || '<tr><td colspan="6" class="empty">No coordinators yet. Add your first one.</td></tr>';
+}
+function drawConfs(){
+  $('f-confs').querySelectorAll('.tag').forEach(n => n.remove());
+  confs.forEach((t,i) => { const sp = document.createElement('span'); sp.className = 'tag'; sp.innerHTML = `${esc(t)}<button type="button" aria-label="Remove ${esc(t)}" data-i="${i}">×</button>`; $('f-confs').insertBefore(sp, $('f-conf-in')); });
+}
+function addConf(){
+  $('f-conf-in').value.split(',').map(v => v.trim()).filter(Boolean).forEach(v => {
+    const match = known.find(k => k.toLowerCase() === v.toLowerCase()) || v;
+    if (!confs.some(t => t.toLowerCase() === match.toLowerCase())) confs.push(match.slice(0,30));
+  });
+  $('f-conf-in').value = ''; drawConfs();
+}
+function open(id){
+  selected = id; draw(); $('side-empty').hidden = true; $('card').hidden = false; $('f-msg').innerHTML = '';
+  const c = list.find(x => x.id === id);
+  $('c-eyebrow').textContent = c ? 'Coordinator' : 'New coordinator';
+  $('c-title').textContent = c ? c.name : 'Add coordinator';
+  $('f-name').value = c ? c.name : ''; $('f-email').value = c ? c.email : '';
+  confs = c ? [...c.conferences] : []; drawConfs();
+  document.querySelector(`input[name="tier"][value="${c ? c.tier : 'view'}"]`).checked = true;
+  $('f-active').checked = c ? !!c.active : true;
+  $('f-invite').hidden = !c;
+  $('f-meta').textContent = c ? `Added ${when(c.created_at)} · last sign-in: ${when(c.last_login)}` : 'After saving, send them an invite so they know how to sign in.';
+  if (!c) $('f-name').focus();
+}
+$('rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) open(tr.dataset.id); });
+$('rows').addEventListener('keydown', e => { if (e.key === 'Enter') { const tr = e.target.closest('tr[data-id]'); if (tr) open(tr.dataset.id); } });
+$('b-add').addEventListener('click', () => open(null));
+$('f-conf-in').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addConf(); } else if (e.key === 'Backspace' && !e.target.value && confs.length) { confs.pop(); drawConfs(); } });
+$('f-conf-in').addEventListener('change', addConf);
+$('f-confs').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) { confs.splice(+b.dataset.i, 1); drawConfs(); } else $('f-conf-in').focus(); });
+$('card').addEventListener('submit', async e => {
+  e.preventDefault(); if ($('f-conf-in').value.trim()) addConf();
+  const body = {name:$('f-name').value, email:$('f-email').value, conferences:confs, tier:document.querySelector('input[name="tier"]:checked').value, active:$('f-active').checked};
+  try {
+    if (selected) await api('/coordinators/' + selected, {method:'PUT', body:JSON.stringify(body)});
+    else { const r = await api('/coordinators', {method:'POST', body:JSON.stringify(body)}); selected = r.id; }
+    await load(); open(selected);
+    $('f-msg').innerHTML = `<div class="msg ok">Saved.${body.active ? '' : ' They have been signed out.'}</div>`;
+  } catch(err){ $('f-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
+});
+$('f-invite').addEventListener('click', async () => {
+  $('f-invite').disabled = true;
+  try { await api('/coordinators/' + selected + '/invite', {method:'POST', body:'{}'}); $('f-msg').innerHTML = `<div class="msg ok">Invite sent to ${esc($('f-email').value)}.</div>`; }
+  catch(err){ $('f-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
+  finally { $('f-invite').disabled = false; }
+});
+MPR.ready.then(me => { if (me.role !== 'master') { location.replace('/coord/'); return; } load().catch(e => { $('rows').innerHTML = `<tr><td colspan="6" class="empty">${esc(e.message)}</td></tr>`; }); });
+})();
+</script>
+</body>
+</html>

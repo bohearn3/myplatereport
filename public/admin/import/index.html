@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/admin/admin.css">
+<link rel="stylesheet" href="/assets/admin.css">
 <style>
 /* Layout: one working column. Load file -> review umpire matches -> team names -> import with progress. */
 html,body{height:auto}
@@ -45,7 +45,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
 <body>
 <header class="band">
   <img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201">
-  <nav class="nav"><a href="/admin/">Send a report</a><a href="/admin/umpires/">Umpires</a><a href="/admin/import/" aria-current="page">Season import</a></nav>
+  <nav id="nav"></nav>
 </header>
 <main>
   <h1 class="pg">Season import</h1>
@@ -75,6 +75,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums}
   </section>
 </main>
 
+<script src="/assets/admin.js"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);

@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/admin/admin.css">
+<link rel="stylesheet" href="/assets/admin.css">
 <style>
 /* Layout: roster table on the left, selected umpire's card (edit + games + reports) on the right. */
 .page{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,420px);min-height:0}
@@ -79,7 +79,7 @@ select.tagsel{width:auto;min-width:170px}
 <body>
 <header class="band">
   <img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201">
-  <nav class="nav"><a href="/admin/">Send a report</a><a href="/admin/umpires/" aria-current="page">Umpires</a><a href="/admin/import/">Season import</a></nav>
+  <nav id="nav"></nav>
 </header>
 
 <div class="page">
@@ -147,6 +147,7 @@ select.tagsel{width:auto;min-width:170px}
   </div>
 </div>
 
+<script src="/assets/admin.js"></script>
 <script src="/js/trackman-csv.js"></script>
 <script>
 (function(){
@@ -165,7 +166,7 @@ async function api(path, opts={}){
   return j;
 }
 async function load(){
-  try { list = (await api('/admin/api/umpires')).umpires; fillTags(); draw(); }
+  try { list = (await api(MPR.base + '/umpires')).umpires; fillTags(); draw(); }
   catch(e){ $('count').textContent = e.message; }
 }
 function allTags(){ const m = new Map(); list.forEach(u => (u.tags||[]).forEach(t => { const k = t.toLowerCase(); if (!m.has(k)) m.set(k, t); })); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }
@@ -173,7 +174,7 @@ function fillTags(){
   const tags = allTags(), cur = $('tag-filter').value;
   $('tag-filter').innerHTML = `<option value="">All conferences</option>` + tags.map(t => `<option value="${esc(t)}">${esc(t)} (${list.filter(u => (u.tags||[]).some(x => x.toLowerCase()===t.toLowerCase())).length})</option>`).join('') + `<option value="__none">No conference</option>`;
   $('tag-filter').value = [...$('tag-filter').options].some(o => o.value === cur) ? cur : '';
-  $('tag-list').innerHTML = tags.map(t => `<option value="${esc(t)}">`).join('');
+  $('tag-list').innerHTML = (ME && ME.role === 'coordinator' ? ME.conferences : tags).map(t => `<option value="${esc(t)}">`).join('');
 }
 function draw(){
   const q = $('q').value.trim().toLowerCase(), inact = $('show-inactive').checked;
@@ -197,12 +198,12 @@ async function open(id){
     const tf = $('tag-filter').value; cardTags = tf && tf !== '__none' ? [tf] : []; drawCardTags();
     $('history').hidden = true; $('trends').hidden = true; $('f-send').hidden = true; $('f-name').focus(); return;
   }
-  const d = await api('/admin/api/umpires/'+id);
+  const d = await api(MPR.base + '/umpires/'+id);
   const u = d.umpire;
   $('c-eyebrow').textContent = `Umpire since ${fmtDate(u.created_at.slice(0,10))}`; $('c-title').textContent = u.name;
   $('f-name').value = u.name; $('f-email').value = u.email; $('f-phone').value = u.phone||''; $('f-notes').value = u.notes||''; $('f-active').checked = !!u.active;
   cardTags = [...(u.tags||[])]; drawCardTags();
-  $('f-send').hidden = false; $('f-send').href = `/admin/?umpire=${encodeURIComponent(u.id)}`;
+  $('f-send').hidden = !MPR.can(ME, 'send'); $('f-send').href = `${MPR.coord ? '/coord/send/' : '/admin/'}?umpire=${encodeURIComponent(u.id)}`;
   const byGame = {}; d.reports.forEach(r => { (byGame[r.game_id] ||= []).push(r); });
   drawTrends(d.games, byGame);
   $('history').hidden = false;
@@ -271,7 +272,9 @@ $('b-add').addEventListener('click', () => open(null));
 function drawCardTags(){
   $('f-tags').querySelectorAll('.tag').forEach(n => n.remove());
   const inp = $('f-tag-in');
-  cardTags.forEach((t,i) => { const sp = document.createElement('span'); sp.className = 'tag'; sp.innerHTML = `${esc(t)}<button type="button" aria-label="Remove ${esc(t)}" data-i="${i}">×</button>`; $('f-tags').insertBefore(sp, inp); });
+  const mine = t => !ME || ME.role === 'master' || ME.conferences.some(c => c.toLowerCase() === t.toLowerCase());
+  const editable = ME && MPR.can(ME, 'full');
+  cardTags.forEach((t,i) => { const sp = document.createElement('span'); sp.className = 'tag'; sp.innerHTML = `${esc(t)}${editable && mine(t) ? `<button type="button" aria-label="Remove ${esc(t)}" data-i="${i}">×</button>` : ''}`; $('f-tags').insertBefore(sp, inp); });
 }
 function addCardTag(){
   const inp = $('f-tag-in'); const vals = inp.value.split(',').map(v => v.trim()).filter(Boolean);
@@ -291,8 +294,8 @@ $('card').addEventListener('submit', async e => {
   const body = {name:$('f-name').value, email:$('f-email').value, phone:$('f-phone').value, notes:$('f-notes').value, tags:cardTags, active:$('f-active').checked};
   if (!body.name.trim() || !validEmail(body.email.trim())){ $('f-msg').innerHTML = '<div class="msg err">Enter a name and a valid email.</div>'; return; }
   try {
-    if (selected) await api('/admin/api/umpires/'+selected, {method:'PUT', body:JSON.stringify(body)});
-    else { const r = await api('/admin/api/umpires', {method:'POST', body:JSON.stringify(body)}); selected = r.id; }
+    if (selected) await api(MPR.base + '/umpires/'+selected, {method:'PUT', body:JSON.stringify(body)});
+    else { const r = await api(MPR.base + '/umpires', {method:'POST', body:JSON.stringify(body)}); selected = r.id; }
     await load(); await open(selected);
     $('f-msg').innerHTML = '<div class="msg ok">Saved.</div>';
   } catch(err){ $('f-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
@@ -326,7 +329,7 @@ $('roster').addEventListener('change', async e => {
     return `<tr><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${esc(r.tags)}</td><td><span class="pill ${bad?'err':upd?'on':'new'}">${bad?'Skipped: missing name or email':upd?'Update':'New'}</span></td></tr>`;
   }).join('');
   $('imp-sum').textContent = `${f.name}: ${nNew} new, ${nUpd} already on the roster (will be updated)${nBad?`, ${nBad} skipped`:''}.`;
-  $('imp-tag').value = $('tag-filter').value && $('tag-filter').value !== '__none' ? $('tag-filter').value : '';
+  $('imp-tag').value = $('tag-filter').value && $('tag-filter').value !== '__none' ? $('tag-filter').value : (ME && ME.role === 'coordinator' ? ME.conferences[0] : '');
   $('imp-go').hidden = !(nNew + nUpd); $('imp-go').textContent = `Import ${nNew + nUpd} umpire${nNew+nUpd===1?'':'s'}`;
   $('imp').hidden = false; $('imp-go').focus();
 });
@@ -338,7 +341,7 @@ $('imp-go').addEventListener('click', async () => {
   try {
     const rows = pending.filter(r => r.name.trim() && validEmail(r.email));
     const tag = $('imp-tag').value.trim();
-    const r = await api('/admin/api/umpires/import', {method:'POST', body:JSON.stringify({rows, tag})});
+    const r = await api(MPR.base + '/umpires/import', {method:'POST', body:JSON.stringify({rows, tag})});
     if (tag) $('tag-filter').value = tag;
     $('imp-msg').innerHTML = `<div class="msg ok">Imported${tag ? ` into ${esc(tag)}` : ''}: ${r.created} new, ${r.updated} updated.${r.errors.length?` ${r.errors.length} skipped.`:''}</div>`;
     await load(); setTimeout(() => $('imp').hidden = true, 1200);
@@ -346,7 +349,25 @@ $('imp-go').addEventListener('click', async () => {
   finally { $('imp-go').disabled = false; }
 });
 
-load();
+let ME = null;
+MPR.ready.then(me => {
+  ME = me;
+  const full = MPR.can(me, 'full');
+  if (me.role === 'coordinator') {
+    document.querySelector('h1.pg').textContent = `${me.conferences.join(' · ')} umpires`;
+    document.title = `Umpires · ${me.conferences.join(', ')} · MyPlateReport`;
+  }
+  if (!full) {
+    // View and send tiers: the roster is read-only.
+    $('b-add').hidden = true; document.querySelector('label[for="roster"]').hidden = true;
+    document.querySelector('.list .hint').hidden = true;
+    ['f-name','f-email','f-phone','f-notes','f-tag-in','f-active'].forEach(id => { $(id).disabled = true; });
+    $('f-save').hidden = true;
+    const note = document.createElement('p'); note.className = 'readonly-note'; note.textContent = 'Your access lets you view umpires. Ask the site admin to change roster details.';
+    $('f-save').parentElement.after(note);
+  }
+  load();
+});
 })();
 </script>
 </body>
