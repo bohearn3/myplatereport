@@ -107,6 +107,50 @@ async function servePdf(id, env, origin) {
   }
 }
 
+/* ---------------- shared game storage ---------------- */
+async function saveTeams(db, teams, t) {
+  const stmts = Object.entries(teams || {}).map(([code, v]) =>
+    db.prepare('INSERT INTO teams (code, short_name, full_name, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(code) DO UPDATE SET short_name = excluded.short_name, full_name = excluded.full_name, updated_at = excluded.updated_at')
+      .bind(code, String(v[0] || code).slice(0, 80), String(v[1] || code).slice(0, 120), t));
+  if (stmts.length) await db.batch(stmts);
+}
+
+// Same umpire + same Trackman game replaces the stored copy instead of duplicating it.
+async function saveGame(db, umpireId, g, fields, s, t) {
+  const gameKey = g.GameID || `${g.Date}|${g.HomeTeam}|${g.AwayTeam}`;
+  const existing = await db.prepare('SELECT id FROM games WHERE umpire_id = ? AND game_key = ?').bind(umpireId, gameKey).first();
+  const gameId = existing ? existing.id : token(9);
+  await db.prepare(`INSERT INTO games (id, umpire_id, game_key, date, home, away, stadium, level, file, fields_json, pitches_json, created_at, adj, raw, decisions, misses, edge)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET date = excluded.date, home = excluded.home, away = excluded.away, stadium = excluded.stadium, level = excluded.level, file = excluded.file,
+      fields_json = excluded.fields_json, pitches_json = excluded.pitches_json, adj = excluded.adj, raw = excluded.raw, decisions = excluded.decisions, misses = excluded.misses, edge = excluded.edge`)
+    .bind(gameId, umpireId, gameKey, g.Date, g.HomeTeam, g.AwayTeam, g.Stadium, g.Level, g.file, JSON.stringify(fields), JSON.stringify(g.pitches), t,
+      s.adj, s.raw, s.decisions, s.missN, s.edgeAcc).run();
+  return gameId;
+}
+
+// Silent import: stores a game for an existing roster umpire. No email, no PDF.
+async function importGame(request, env, body) {
+  const admin = request.headers.get('cf-access-authenticated-user-email');
+  const g = body?.game, fields = body?.fields;
+  if (!body?.umpireId || !g || !Array.isArray(g.pitches) || !Array.isArray(fields)) return json({ error: 'Missing umpire or game data.' }, 400);
+  if (g.pitches.length > 2000) return json({ error: 'Too many pitches for one game.' }, 400);
+  const u = await env.DB.prepare('SELECT id, name FROM umpires WHERE id = ?').bind(body.umpireId).first();
+  if (!u) return json({ error: 'That umpire is not on the roster.' }, 404);
+  const A = E.analyzeGame({ ...g, umpire: u.name }, fields, E.ZONES.nsi2027);
+  const t = now();
+  await saveTeams(env.DB, body.teams, t);
+  const gameId = await saveGame(env.DB, u.id, g, fields, A.summary, t);
+  // Give every game a report link (for the roster page) without emailing it
+  let rep = await env.DB.prepare('SELECT id FROM reports WHERE game_id = ? ORDER BY created_at LIMIT 1').bind(gameId).first();
+  if (!rep) {
+    rep = { id: token() };
+    await env.DB.prepare('INSERT INTO reports (id, game_id, umpire_id, created_by, created_at, email_status, pdf_status) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(rep.id, gameId, u.id, admin, t, 'imported (not emailed)', 'on request').run();
+  }
+  return json({ ok: true, gameId, reportId: rep.id, adj: A.summary.adj, misses: A.summary.missN });
+}
+
 /* ---------------- save + email ---------------- */
 async function saveReport(request, env, ctx) {
   if (!env.DB) return json({ error: 'The database is not connected yet.' }, 503);
@@ -131,20 +175,8 @@ async function saveReport(request, env, ctx) {
   if (!umpire) { umpire = { id: token(9) }; await db.prepare('INSERT INTO umpires (id, name, email, created_at) VALUES (?, ?, ?, ?)').bind(umpire.id, name, email, t).run(); }
   else await db.prepare('UPDATE umpires SET name = ? WHERE id = ?').bind(name, umpire.id).run();
 
-  const teamStmts = Object.entries(rep.teams || {}).map(([code, v]) =>
-    db.prepare('INSERT INTO teams (code, short_name, full_name, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(code) DO UPDATE SET short_name = excluded.short_name, full_name = excluded.full_name, updated_at = excluded.updated_at')
-      .bind(code, String(v[0] || code).slice(0, 80), String(v[1] || code).slice(0, 120), t));
-  if (teamStmts.length) await db.batch(teamStmts);
-
-  const gameKey = g.GameID || `${g.Date}|${g.HomeTeam}|${g.AwayTeam}`;
-  const existing = await db.prepare('SELECT id FROM games WHERE umpire_id = ? AND game_key = ?').bind(umpire.id, gameKey).first();
-  const gameId = existing ? existing.id : token(9);
-  await db.prepare(`INSERT INTO games (id, umpire_id, game_key, date, home, away, stadium, level, file, fields_json, pitches_json, created_at, adj, raw, decisions, misses, edge)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET date = excluded.date, home = excluded.home, away = excluded.away, stadium = excluded.stadium, level = excluded.level, file = excluded.file,
-      fields_json = excluded.fields_json, pitches_json = excluded.pitches_json, adj = excluded.adj, raw = excluded.raw, decisions = excluded.decisions, misses = excluded.misses, edge = excluded.edge`)
-    .bind(gameId, umpire.id, gameKey, g.Date, g.HomeTeam, g.AwayTeam, g.Stadium, g.Level, g.file, JSON.stringify(rep.fields), JSON.stringify(g.pitches), t,
-      s.adj, s.raw, s.decisions, s.missN, s.edgeAcc).run();
+  await saveTeams(db, rep.teams, t);
+  const gameId = await saveGame(db, umpire.id, g, rep.fields, s, t);
 
   const reportId = token();
   await db.prepare('INSERT INTO reports (id, game_id, umpire_id, created_by, created_at) VALUES (?, ?, ?, ?, ?)').bind(reportId, gameId, umpire.id, admin, t).run();
@@ -278,6 +310,8 @@ async function adminApi(request, env, path) {
   let body = null;
   if (m === 'POST' || m === 'PUT') { try { body = await request.json(); } catch { return json({ error: 'The request could not be read.' }, 400); } }
 
+  if (path === '/admin/api/games/import' && m === 'POST') return importGame(request, env, body);
+  if (path === '/admin/api/teams' && m === 'GET') return json({ teams: (await env.DB.prepare('SELECT code, short_name, full_name FROM teams').all()).results });
   if (path === '/admin/api/umpires' && m === 'GET') return listUmpires(env);
   if (path === '/admin/api/umpires' && m === 'POST') {
     const r = await upsertUmpire(env, body || {});

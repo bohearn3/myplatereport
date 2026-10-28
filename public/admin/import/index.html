@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Season Import · MyPlateReport</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/admin/admin.css">
+<style>
+/* Layout: one working column. Load file -> review umpire matches -> team names -> import with progress. */
+html,body{height:auto}
+main{max-width:1180px;width:100%;margin:0 auto;padding:22px max(20px,env(safe-area-inset-right,0px)) 60px max(20px,env(safe-area-inset-left,0px))}
+h1.pg{font-family:var(--f-display);font-weight:800;font-size:1.8rem;text-transform:uppercase;margin:0 0 4px}
+h2.st{font-family:var(--f-display);font-weight:800;font-size:1.2rem;text-transform:uppercase;margin:28px 0 8px}
+.sub2{color:var(--muted);margin:0 0 14px;max-width:75ch}
+.summary{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 12px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.85rem;font-weight:600;cursor:pointer}
+.chip b{font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tw{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface);max-height:62vh}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+th{position:sticky;top:0;z-index:1;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+td select{min-width:230px;padding:6px 8px}
+td.r{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:.74rem;font-weight:700}
+.pill.ok{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.pill.maybe{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.pill.need{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.pill.skip{background:var(--line);color:var(--muted)}
+.pill.done{background:color-mix(in srgb,var(--powder) 22%,transparent);color:var(--deep)}
+.teams{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.teams label{margin:0 0 3px}
+.bar{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:10px 0 4px}
+.bar i{display:block;height:100%;width:0;background:var(--powder);transition:width .2s}
+.go{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.go button.primary{width:auto;padding:12px 22px}
+</style>
+</head>
+<body>
+<header class="band">
+  <img class="logo" src="/img/bb-collegiate-umpires-dark.png" alt="BB Collegiate Umpires" width="1200" height="201">
+  <nav class="nav"><a href="/admin/">Send a report</a><a href="/admin/umpires/">Umpires</a><a href="/admin/import/" aria-current="page">Season import</a></nav>
+</header>
+<main>
+  <h1 class="pg">Season import</h1>
+  <p class="sub2">Load past games into each umpire's history so their trends start with real data. <b>Nothing is emailed and no PDFs are made.</b> Each game is matched to your roster using the umpire name inside the report. Games already on the site are updated, not duplicated.</p>
+
+  <label class="ghost filebtn" for="bundle" style="width:max-content">Choose season file (.json)<input type="file" id="bundle" accept=".json,application/json"></label>
+  <div id="load-msg"></div>
+
+  <section id="review" hidden>
+    <h2 class="st">1 · Check umpire matches</h2>
+    <p class="sub2">Green matches the roster exactly. Yellow is a likely match: check it. Red needs you to pick the umpire or skip the game.</p>
+    <div class="summary" id="summary"></div>
+    <div class="tw"><table>
+      <thead><tr><th><input type="checkbox" id="all" checked aria-label="Include all"></th><th>Date</th><th>Game</th><th>Name in report</th><th>Roster umpire</th><th>Match</th><th class="r">Pitches</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+
+    <h2 class="st">2 · Team names</h2>
+    <p class="sub2">How each Trackman team code appears on reports. Leave a box as the code if you're not sure; you can change names later from the send page.</p>
+    <div class="teams" id="teams"></div>
+
+    <h2 class="st">3 · Import</h2>
+    <div class="go"><button type="button" class="primary" id="go">Import games</button><span class="hint" id="go-note"></span></div>
+    <div class="bar" id="bar" hidden><i id="bar-i"></i></div>
+    <div id="go-msg"></div>
+  </section>
+</main>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+const norm = s => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z ]/g,' ').replace(/\b(jr|sr|ii|iii|iv)\b/g,' ').replace(/\s+/g,' ').trim();
+const NICK = {tony:'anthony', sid:'silvio', bill:'william', will:'william', mike:'michael', rob:'robert', bob:'robert', jim:'james', joe:'joseph', tom:'thomas', dan:'daniel', dave:'david', chris:'christopher', matt:'matthew', nick:'nicholas', pat:'patrick', steve:'stephen', greg:'gregory', jeff:'jeffrey', ben:'benjamin', alex:'alexander', andy:'andrew', drew:'andrew', jake:'jacob', zach:'zachary', ed:'edward', ted:'edward', tim:'timothy', ken:'kenneth', ron:'ronald', rick:'richard', dick:'richard', sam:'samuel', tony_:'antonio'};
+const first = n => { const f = norm(n).split(' ')[0] || ''; return NICK[f] || f; };
+const last = n => { const p = norm(n).split(' '); return p[p.length-1] || ''; };
+let B = null, roster = [], rows = [], filter = 'all';
+
+async function api(path, opts={}){
+  const r = await fetch(path, {headers:{'content-type':'application/json'}, ...opts});
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(j.error || `The server returned ${r.status}.`);
+  return j;
+}
+
+function match(name){
+  if (!name || norm(name) === 'tbd') return {status:'need', id:'', why:'No umpire named in the report'};
+  const n = norm(name);
+  const exact = roster.filter(u => norm(u.name) === n);
+  if (exact.length === 1) return {status:'ok', id:exact[0].id, why:'Exact name'};
+  const sameLast = roster.filter(u => last(u.name) === last(name));
+  const sameFirst = sameLast.filter(u => first(u.name) === first(name));
+  if (sameFirst.length === 1) return {status:'maybe', id:sameFirst[0].id, why:'Nickname or spelling'};
+  // spelling slips in the last name (e.g., Candeleria vs Candelaria): same first name, last name off by a letter or two
+  const close = roster.filter(u => first(u.name) === first(name) && lev(last(u.name), last(name)) <= 2);
+  if (close.length === 1) return {status:'maybe', id:close[0].id, why:'Close spelling'};
+  if (sameLast.length === 1) return {status:'maybe', id:sameLast[0].id, why:'Same last name only'};
+  if (sameLast.length > 1) return {status:'need', id:'', why:`${sameLast.length} umpires named ${name.split(' ').slice(-1)[0]}`};
+  return {status:'need', id:'', why:'Not on the roster'};
+}
+function lev(a,b){ const d = Array.from({length:a.length+1},(_,i)=>[i]); for (let j=1;j<=b.length;j++) d[0][j]=j;
+  for (let i=1;i<=a.length;i++) for (let j=1;j<=b.length;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[a.length][b.length]; }
+
+function teamName(code){ const v = $('t-'+code); return v && v.value.trim() ? v.value.trim() : code; }
+function draw(){
+  const counts = {all:rows.length, ok:0, maybe:0, need:0, skip:0, done:0};
+  rows.forEach(r => counts[r.state()]++);
+  $('summary').innerHTML = [['all','All'],['ok','Exact'],['maybe','Check'],['need','Needs umpire'],['skip','Skipped'],['done','Imported']]
+    .filter(([k]) => k==='all' || counts[k]).map(([k,l]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${filter===k}">${l} <b>${counts[k]}</b></button>`).join('');
+  const opts = `<option value="">Choose umpire…</option>` + roster.map(u => `<option value="${esc(u.id)}">${esc(u.name)}${(u.tags||[]).length?` (${esc(u.tags.join(', '))})`:''}</option>`).join('');
+  $('rows').innerHTML = rows.map((r,i) => {
+    const st = r.state(); if (filter !== 'all' && st !== filter) return '';
+    const label = {ok:'Exact', maybe:r.m.why, need:r.m.why, skip:'Skipped', done:`Imported · ${r.result}`}[st];
+    return `<tr data-i="${i}"><td><input type="checkbox" class="inc" ${r.include?'checked':''} ${r.done?'disabled':''} aria-label="Include game"></td>
+      <td>${fmtDate(r.g.Date)}</td><td>${esc(teamName(r.g.AwayTeam))} at ${esc(teamName(r.g.HomeTeam))}</td><td><b>${esc(r.g.umpireName || '(none)')}</b></td>
+      <td><select class="pick" ${r.done?'disabled':''}>${opts}</select></td><td><span class="pill ${st}">${esc(label)}</span></td><td class="r">${r.g.pitches.length}</td></tr>`;
+  }).join('');
+  $('rows').querySelectorAll('tr[data-i]').forEach(tr => { tr.querySelector('.pick').value = rows[+tr.dataset.i].id; });
+  const ready = rows.filter(r => r.include && r.id && !r.done).length, missing = rows.filter(r => r.include && !r.id && !r.done).length;
+  $('go').textContent = `Import ${ready} game${ready===1?'':'s'} (no emails)`; $('go').disabled = !ready;
+  $('go-note').textContent = missing ? `${missing} included game${missing===1?' has':'s have'} no umpire picked and will be left out.` : '';
+}
+
+$('bundle').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  $('load-msg').innerHTML = '';
+  try {
+    B = JSON.parse(await f.text());
+    if (!Array.isArray(B.games) || !Array.isArray(B.fields)) throw new Error('This is not a season file.');
+    roster = (await api('/admin/api/umpires')).umpires;
+    const existingTeams = Object.fromEntries((await api('/admin/api/teams')).teams.map(t => [t.code, t.full_name]));
+    if (!roster.length) throw new Error('Your roster is empty. Upload rosters on the Umpires page first.');
+    rows = B.games.map(g => { const m = match(g.umpireName); return {
+      g, m, id: m.id, include: m.status !== 'need' || !!g.umpireName && norm(g.umpireName) !== 'tbd', done: false, result: '',
+      state(){ return this.done ? 'done' : !this.include ? 'skip' : !this.id ? 'need' : this.id === this.m.id ? this.m.status : 'ok'; } }; });
+    const codes = [...new Set(B.games.flatMap(g => [g.HomeTeam, g.AwayTeam]).filter(Boolean))].sort();
+    $('teams').innerHTML = codes.map(c => `<div><label for="t-${esc(c)}">${esc(c)}</label><input type="text" id="t-${esc(c)}" value="${esc(existingTeams[c] || (B.teams && B.teams[c] && B.teams[c][1]) || c)}" autocomplete="off"></div>`).join('');
+    $('load-msg').innerHTML = `<div class="msg ok">${esc(f.name)}: ${B.games.length} games, ${roster.length} umpires on your roster.</div>`;
+    $('review').hidden = false; filter = 'all'; draw();
+  } catch(err){ $('load-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; $('review').hidden = true; }
+  e.target.value = '';
+});
+$('summary').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b){ filter = b.dataset.f; draw(); } });
+$('rows').addEventListener('change', e => {
+  const tr = e.target.closest('tr[data-i]'); if (!tr) return; const r = rows[+tr.dataset.i];
+  if (e.target.classList.contains('pick')) { r.id = e.target.value; if (r.id) r.include = true; }
+  if (e.target.classList.contains('inc')) r.include = e.target.checked;
+  draw();
+});
+$('all').addEventListener('change', e => { rows.forEach(r => { if (!r.done) r.include = e.target.checked; }); draw(); });
+$('teams').addEventListener('input', () => draw());
+
+$('go').addEventListener('click', async () => {
+  const todo = rows.filter(r => r.include && r.id && !r.done);
+  if (!todo.length) return;
+  const teams = {};
+  document.querySelectorAll('#teams input').forEach(inp => { const code = inp.id.slice(2), full = inp.value.trim() || code; teams[code] = [full === code ? code : full.split(' ').slice(0, -1).join(' ') || full, full]; });
+  $('go').disabled = true; $('bar').hidden = false; $('go-msg').innerHTML = '';
+  let ok = 0; const fails = [];
+  for (let i = 0; i < todo.length; i++) {
+    const r = todo[i];
+    const used = {[r.g.HomeTeam]: teams[r.g.HomeTeam], [r.g.AwayTeam]: teams[r.g.AwayTeam]};
+    const {umpireName, ...game} = r.g;
+    try {
+      const j = await api('/admin/api/games/import', {method:'POST', body: JSON.stringify({umpireId: r.id, fields: B.fields, game, teams: used})});
+      r.done = true; r.result = j.adj == null ? 'saved' : `${(j.adj*100).toFixed(1)}%`; ok++;
+    } catch(err){ fails.push(`${r.g.Date} ${r.g.umpireName}: ${err.message}`); }
+    $('bar-i').style.width = `${((i+1)/todo.length*100).toFixed(1)}%`;
+    if (i % 5 === 4 || i === todo.length - 1) draw();
+  }
+  $('go-msg').innerHTML = `<div class="msg ${fails.length?'warn':'ok'}">Imported ${ok} of ${todo.length} games. No emails were sent.${fails.length ? '<br>' + fails.map(esc).join('<br>') : ''}</div>`;
+  draw();
+});
+})();
+</script>
+</body>
+</html>
