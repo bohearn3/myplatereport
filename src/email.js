@@ -14,7 +14,7 @@ export function reportEmail({ name, url, game, s, hbp, pdf }) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F6F9"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
   <tr><td style="background:#0D1117;border-radius:12px 12px 0 0;padding:18px 22px">
-    <img src="https://myplatereport.com/img/bb-collegiate-umpires-dark.png" width="240" height="40" alt="BB Collegiate Umpires" style="display:block;border:0;width:240px;height:auto"></td></tr>
+    <img src="https://myplatereport.com/img/myplatereport-logo-dark.png" width="168" height="56" alt="MyPlateReport" style="display:block;border:0;width:168px;height:auto"></td></tr>
   <tr><td style="background:#FFFFFF;padding:24px 22px;font:15px/1.55 Arial,sans-serif;color:#0D1117">
     <p style="margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#5A6573">Plate umpire report · 2027 NSI static zone</p>
     <h1 style="margin:0 0 4px;font:800 26px/1.1 Arial Narrow,Arial,sans-serif;text-transform:uppercase">${esc(title)}</h1>
@@ -50,7 +50,7 @@ const shell = (inner) => `<!doctype html><html><body style="margin:0;background:
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F6F9"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
   <tr><td style="background:#0D1117;border-radius:12px 12px 0 0;padding:18px 22px">
-    <img src="https://myplatereport.com/img/bb-collegiate-umpires-dark.png" width="220" alt="BB Collegiate Umpires" style="display:block;border:0;width:220px;height:auto"></td></tr>
+    <img src="https://myplatereport.com/img/myplatereport-logo-dark.png" width="168" height="56" alt="MyPlateReport" style="display:block;border:0;width:168px;height:auto"></td></tr>
   <tr><td style="background:#FFFFFF;padding:24px 22px;font:15px/1.55 Arial,sans-serif;color:#0D1117">${inner}</td></tr>
 </table></td></tr></table></body></html>`;
 

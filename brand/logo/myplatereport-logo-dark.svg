@@ -1,0 +1,9 @@
+<svg id="s" xmlns="http://www.w3.org/2000/svg" viewBox="6 4 617.6724853515625 213" width="1200" height="414"><g transform="translate(10 8)">
+  <path d="M10 10 H166 V110 L88 188 L10 110 Z" fill="none" stroke="#63A6DA" stroke-width="20" stroke-linejoin="round"></path>
+  <path d="M10 10 H166 V110 L88 188 L10 110 Z" fill="none" stroke="#0D1117" stroke-width="8" stroke-linejoin="round"></path>
+  <path d="M10 10 H166 V110 L88 188 L10 110 Z" fill="#000000"></path>
+  <rect x="100.7" y="36" width="25.3" height="29.3" fill="#63A6DA"></rect>
+  <path d="M75.3 36 V124 M100.7 36 V124 M50 65.3 H126 M50 94.7 H126" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="2"></path>
+  <rect x="50" y="36" width="76" height="88" fill="none" stroke="#FFFFFF" stroke-width="4"></rect></g>
+  <text x="222" y="102" class="w" fill="#F3F6F9">MYPLATE</text>
+  <text x="206" y="186" class="w" fill="#63A6DA">REPORT</text></svg>
