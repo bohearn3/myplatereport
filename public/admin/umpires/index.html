@@ -272,7 +272,7 @@ async function open(id){
   $('history').hidden = false;
   $('games').innerHTML = d.games.map(g => {
     const reps = byGame[g.id] || [], latest = reps[0];
-    const status = latest ? (latest.email_status==='sent' ? `Emailed ${fmtDate(latest.emailed_at.slice(0,10))}` : `Email: ${esc(latest.email_status||'not sent')}`) : 'No report';
+    const status = latest ? (latest.email_status==='sent' ? `Emailed ${fmtDate(latest.emailed_at.slice(0,10))}` : `Email: ${esc(latest.email_status||'not sent')}`) + (latest.first_opened_at ? ` · opened ${fmtDate(latest.first_opened_at.slice(0,10))}${latest.open_count > 1 ? ` (${latest.open_count}×)` : ''}` : latest.email_status==='sent' ? ' · not opened yet' : '') : 'No report';
     return `<div class="game"><b>${g.home===g.away ? `${esc(g.home_name||g.home)} intrasquad` : `${esc(g.away_name||g.away)} at ${esc(g.home_name||g.home)}`}</b>
       <span class="m">${fmtDate(g.date)} · ${pct(g.adj)} adjusted · ${g.misses ?? '–'} missed · ${status}${reps.length>1?` · sent ${reps.length} times`:''}</span>
       <div class="links">${latest ? `<a href="/r/${esc(latest.id)}" target="_blank" rel="noopener">Open report</a><a href="/r/${esc(latest.id)}/pdf" target="_blank" rel="noopener">PDF</a>` : ''}

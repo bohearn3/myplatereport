@@ -1,5 +1,5 @@
 // Report email: short summary + private link. Table layout and inline styles for email clients.
-const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+export const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pct = v => (v == null ? '–' : (v * 100).toFixed(1) + '%');
 const fmtDate = s => { if (!s) return ''; const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }); };
 
@@ -46,7 +46,7 @@ This link is private to you. Reply to this email with questions.`;
 }
 
 // Coordinator sign-in code and invitation
-const shell = (inner) => `<!doctype html><html><body style="margin:0;background:#F3F6F9">
+export const shell = (inner) => `<!doctype html><html><body style="margin:0;background:#F3F6F9">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F6F9"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
   <tr><td style="background:#0D1117;border-radius:12px 12px 0 0;padding:18px 22px">

@@ -598,7 +598,7 @@ window.addEventListener('message', e => {
   boot(e.data.data);
 });
 const rm = location.pathname.match(/^\/r\/([A-Za-z0-9_-]+)/);
-if (rm) fetch('/api/reports/' + rm[1]).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(boot)
+if (rm) fetch('/api/reports/' + rm[1] + (new URLSearchParams(location.search).has('pdf') ? '?pdf=1' : '')).then(r => r.ok ? r.json() : Promise.reject(r.status)).then(boot)
   .catch(() => showError('This report link is not valid or has expired. Contact your crew coordinator for a new link.'));
 if (window.parent !== window) window.parent.postMessage({type:'report-ready'}, location.origin);
 })();

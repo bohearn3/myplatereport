@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Teams · MyPlateReport</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/admin.css">
+<style>
+/* Layout: one editable table of every Trackman team code: names and the conference whose games it hosts. */
+html,body{height:auto;min-height:100%}
+main{width:100%;max-width:1200px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+h1{font-family:var(--f-display);font-weight:800;font-size:1.9rem;text-transform:uppercase;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 16px;font-size:.9rem;max-width:760px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar input[type=search]{flex:1;min-width:200px}
+.toolbar select{width:auto}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+td input{padding:6px 8px!important;min-width:110px}
+td input.conf{min-width:120px;max-width:150px}
+tr.changed td{background:color-mix(in srgb,var(--powder) 10%,transparent)}
+tbody tr:last-child td{border-bottom:0}
+code{font-size:.84rem}
+.sug{border:1px dashed var(--powder);background:none;color:var(--deep);font:inherit;font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 9px;cursor:pointer}
+.bar{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 0;background:var(--bg)}
+.bar .primary{width:auto;padding:10px 20px}
+.bar span{color:var(--muted);font-size:.86rem;margin-right:auto}
+</style>
+</head>
+<body>
+<header class="band">
+  <img class="logo" src="/img/myplatereport-logo-dark.png" alt="MyPlateReport" width="1200" height="398">
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="eyebrow">Master admin</div>
+  <h1>Teams</h1>
+  <p class="sub">Set each team's conference so coordinators can look at only their own conference's games. A game belongs to the <b>home team's</b> conference. Suggestions come from the conference most of that team's home-game umpires are tagged with; check them before you save. Names here are used on reports and emails.</p>
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Search team code or name" aria-label="Search teams">
+    <select id="show" aria-label="Show"><option value="">All teams</option><option value="none">No conference yet</option><option value="sug">Has a suggestion</option></select>
+    <button type="button" class="ghost" id="apply">Use all suggestions</button>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>Trackman code</th><th>Short name</th><th>Full name</th><th>Conference</th><th>Suggested</th><th class="r">Home games</th><th class="r">Away games</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="7" class="hint">Loading…</td></tr></tbody>
+  </table></div>
+  <datalist id="confs"></datalist>
+  <div class="bar"><span id="count"></span><button type="button" class="primary" id="save" disabled>Save changes</button></div>
+  <div id="msg"></div>
+</main>
+<script src="/assets/admin.js"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let teams = [], orig = {};
+const key = t => JSON.stringify([t.short_name||'', t.full_name||'', t.conference||'']);
+const changed = () => teams.filter(t => key(t) !== orig[t.code]);
+async function load(){
+  const r = await fetch('/admin/api/teams/admin'); const j = await r.json();
+  if (!r.ok) { $('rows').innerHTML = `<tr><td colspan="7">${esc(j.error || 'Could not load teams.')}</td></tr>`; return; }
+  teams = j.teams; orig = Object.fromEntries(teams.map(t => [t.code, key(t)]));
+  $('confs').innerHTML = j.conferences.map(c => `<option value="${esc(c)}">`).join('');
+  draw();
+}
+function draw(){
+  const q = $('q').value.trim().toLowerCase(), show = $('show').value;
+  const list = teams.filter(t => (!q || [t.code, t.short_name, t.full_name, t.conference].some(v => String(v||'').toLowerCase().includes(q)))
+    && (show !== 'none' || !t.conference) && (show !== 'sug' || (t.suggest && t.suggest !== t.conference)));
+  $('rows').innerHTML = list.map(t => `<tr data-code="${esc(t.code)}" class="${key(t) !== orig[t.code] ? 'changed' : ''}">
+    <td><code>${esc(t.code)}</code></td>
+    <td><input type="text" data-f="short_name" value="${esc(t.short_name||'')}" aria-label="Short name for ${esc(t.code)}"></td>
+    <td><input type="text" data-f="full_name" value="${esc(t.full_name||'')}" aria-label="Full name for ${esc(t.code)}" style="min-width:220px"></td>
+    <td><input type="text" class="conf" data-f="conference" list="confs" value="${esc(t.conference||'')}" placeholder="None" aria-label="Conference for ${esc(t.code)}"></td>
+    <td>${t.suggest && t.suggest !== t.conference ? `<button type="button" class="sug" data-sug="${esc(t.suggest)}">Use ${esc(t.suggest)}</button>` : ''}</td>
+    <td class="r">${t.home_games}</td><td class="r">${t.away_games}</td></tr>`).join('') || '<tr><td colspan="7" class="hint">No teams match.</td></tr>';
+  const c = changed().length, none = teams.filter(t => !t.conference).length;
+  $('count').textContent = `${teams.length} teams · ${none} without a conference${c ? ` · ${c} unsaved change${c===1?'':'s'}` : ''}`;
+  $('save').disabled = !c;
+}
+$('rows').addEventListener('input', e => { const tr = e.target.closest('tr[data-code]'); if (!tr) return; const t = teams.find(x => x.code === tr.dataset.code); t[e.target.dataset.f] = e.target.value; tr.classList.toggle('changed', key(t) !== orig[t.code]); const c = changed().length; $('save').disabled = !c; $('count').textContent = $('count').textContent.replace(/ · \d+ unsaved changes?$/, '') + (c ? ` · ${c} unsaved change${c===1?'':'s'}` : ''); });
+$('rows').addEventListener('click', e => { const b = e.target.closest('[data-sug]'); if (!b) return; const t = teams.find(x => x.code === b.closest('tr').dataset.code); t.conference = b.dataset.sug; draw(); });
+$('apply').addEventListener('click', () => { teams.forEach(t => { if (t.suggest && !t.conference) t.conference = t.suggest; }); draw(); });
+$('q').addEventListener('input', draw); $('show').addEventListener('change', draw);
+$('save').addEventListener('click', async () => {
+  $('save').disabled = true; $('msg').innerHTML = '';
+  const r = await fetch('/admin/api/teams/admin', {method:'PUT', headers:{'content-type':'application/json'}, body: JSON.stringify({teams: changed()})});
+  const j = await r.json().catch(()=>({}));
+  if (!r.ok) { $('msg').innerHTML = `<div class="msg err">${esc(j.error || 'Could not save.')}</div>`; $('save').disabled = false; return; }
+  await load(); $('msg').innerHTML = `<div class="msg ok">Saved ${j.saved} team${j.saved===1?'':'s'}.</div>`;
+});
+MPR.ready.then(me => { if (me.role !== 'master') { location.replace('/coord/'); return; } load(); });
+})();
+</script>
+</body>
+</html>

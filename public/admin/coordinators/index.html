@@ -59,7 +59,8 @@ tbody tr:last-child td{border-bottom:0}
   <main class="list">
     <h1 class="pg">Coordinators</h1>
     <p class="sub2">Conference coordinators sign in at <b>myplatereport.com/coord</b> with a code sent to their email. They only see umpires tagged with their conferences, including all of those umpires' games and trends. Your own access stays on the Cloudflare sign-in.</p>
-    <div class="toolbar"><button type="button" class="ghost" id="b-add">Add coordinator</button></div>
+    <div class="toolbar"><button type="button" class="ghost" id="b-add">Add coordinator</button><button type="button" class="ghost" id="b-preview">Email me a preview of my weekly report</button><span id="t-msg"></span></div>
+    <p class="sub2" style="margin-top:-4px">Weekly reports go out <b>Wednesdays at 9–10 am Pacific</b> to you (every conference) and to each coordinator with the weekly email turned on, whenever their staff has new games from the past week.</p>
     <div class="tw"><table>
       <thead><tr><th>Name</th><th>Conferences</th><th>Access</th><th>Email</th><th>Last sign-in</th><th>Status</th></tr></thead>
       <tbody id="rows"></tbody>
@@ -82,9 +83,11 @@ tbody tr:last-child td{border-bottom:0}
         <label class="tier"><input type="radio" name="tier" value="full"><div><b>Full control of their conference</b><span>Also add and edit umpires and upload rosters for their conferences.</span></div></label>
       </div>
       <label class="check"><input type="checkbox" id="f-active" checked> Active (can sign in)</label>
+      <label class="check"><input type="checkbox" id="f-weekly" checked> Weekly staff email on Wednesdays</label>
       <div class="btns">
         <button type="submit" class="primary" id="f-save" style="width:auto;padding:10px 18px">Save</button>
         <button type="button" class="ghost" id="f-invite">Email them a sign-in invite</button>
+        <button type="button" class="ghost" id="f-preview">Preview their weekly email</button>
       </div>
       <div id="f-msg"></div>
       <p class="meta" id="f-meta"></p>
@@ -142,7 +145,8 @@ function open(id){
   confs = c ? [...c.conferences] : []; drawConfs();
   document.querySelector(`input[name="tier"][value="${c ? c.tier : 'view'}"]`).checked = true;
   $('f-active').checked = c ? !!c.active : true;
-  $('f-invite').hidden = !c;
+  $('f-weekly').checked = c ? c.weekly_email !== 0 : true;
+  $('f-invite').hidden = !c; $('f-preview').hidden = !c;
   $('f-meta').textContent = c ? `Added ${when(c.created_at)} · last sign-in: ${when(c.last_login)}` : 'After saving, send them an invite so they know how to sign in.';
   if (!c) $('f-name').focus();
 }
@@ -154,7 +158,7 @@ $('f-conf-in').addEventListener('change', addConf);
 $('f-confs').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) { confs.splice(+b.dataset.i, 1); drawConfs(); } else $('f-conf-in').focus(); });
 $('card').addEventListener('submit', async e => {
   e.preventDefault(); if ($('f-conf-in').value.trim()) addConf();
-  const body = {name:$('f-name').value, email:$('f-email').value, conferences:confs, tier:document.querySelector('input[name="tier"]:checked').value, active:$('f-active').checked};
+  const body = {name:$('f-name').value, email:$('f-email').value, conferences:confs, tier:document.querySelector('input[name="tier"]:checked').value, active:$('f-active').checked, weekly_email:$('f-weekly').checked};
   try {
     if (selected) await api('/coordinators/' + selected, {method:'PUT', body:JSON.stringify(body)});
     else { const r = await api('/coordinators', {method:'POST', body:JSON.stringify(body)}); selected = r.id; }
@@ -168,6 +172,14 @@ $('f-invite').addEventListener('click', async () => {
   catch(err){ $('f-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
   finally { $('f-invite').disabled = false; }
 });
+async function preview(btn, body, out){
+  btn.disabled = true; out.innerHTML = '';
+  try { const r = await api('/coordinators/digest-preview', {method:'POST', body: JSON.stringify(body)}); out.innerHTML = `<div class="msg ok">${esc(r.message)}</div>`; }
+  catch(err){ out.innerHTML = `<div class="msg err">${esc(err.message)}</div>`; }
+  finally { btn.disabled = false; }
+}
+$('b-preview').addEventListener('click', () => preview($('b-preview'), {}, $('t-msg')));
+$('f-preview').addEventListener('click', () => preview($('f-preview'), {coordinatorId: selected}, $('f-msg')));
 MPR.ready.then(me => { if (me.role !== 'master') { location.replace('/coord/'); return; } load().catch(e => { $('rows').innerHTML = `<tr><td colspan="6" class="empty">${esc(e.message)}</td></tr>`; }); });
 })();
 </script>

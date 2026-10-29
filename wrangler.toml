@@ -11,6 +11,11 @@ binding = "ASSETS"
 [vars]
 REPLY_TO = "bohearn3@gmail.com"
 
+# Weekly staff email: Wednesdays at 17:00 UTC (10 am Pacific in summer, 9 am in winter; 7 am Hawaii).
+# The all-conference version goes to REPLY_TO; each coordinator gets their own conferences.
+[triggers]
+crons = ["0 17 * * 3"]
+
 # Umpires, games, pitches and report links (tables are created automatically on first use)
 [[d1_databases]]
 binding = "DB"

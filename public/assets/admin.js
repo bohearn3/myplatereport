@@ -6,7 +6,7 @@
   const TIERS = ['view', 'send', 'full'];
   const can = (me, t) => me.role === 'master' || TIERS.indexOf(me.tier) >= TIERS.indexOf(t);
   const links = me => me.role === 'master'
-    ? [['/admin/dashboard/', 'Dashboard'], ['/admin/', 'Send a report'], ['/admin/umpires/', 'Umpires'], ['/admin/import/', 'Season import'], ['/admin/coordinators/', 'Coordinators']]
+    ? [['/admin/dashboard/', 'Dashboard'], ['/admin/', 'Send a report'], ['/admin/umpires/', 'Umpires'], ['/admin/import/', 'Season import'], ['/admin/teams/', 'Teams'], ['/admin/coordinators/', 'Coordinators']]
     : [['/coord/', 'Dashboard'], ['/coord/umpires/', 'Umpires'], ...(can(me, 'send') ? [['/coord/send/', 'Send a report']] : [])];
   function render(me) {
     const host = document.getElementById('nav'); if (!host) return;

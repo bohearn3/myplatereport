@@ -218,6 +218,27 @@
     };
   }
 
+  // Compact per-game numbers stored with each game for the staff dashboard and weekly email.
+  // Every bucket is { n: decisions, ok: correct after the buffer, scb: strikes called balls, bcs: balls called strikes }.
+  function gameStats(A) {
+    const dec = A.pitches.filter(p => p.dec && p.has);
+    const tally = list => ({ n: list.length, ok: list.filter(p => p.adjOK).length, scb: list.filter(p => p.missType === 'strikeCalledBall').length, bcs: list.filter(p => p.missType === 'ballCalledStrike').length });
+    const by = (keyFn, keys) => Object.fromEntries(keys.map(k => [k, tally(dec.filter(p => keyFn(p) === k))]));
+    const sit = p => p.balls === 0 && p.strikes === 0 ? 'first' : p.strikes === 2 && p.balls === 3 ? 'full' : p.strikes === 2 ? 'two' : p.balls === 3 ? 'three' : p.balls > p.strikes ? 'behind' : p.strikes > p.balls ? 'ahead' : 'even';
+    const f = A.fair, home = A.meta.home, away = A.meta.away;
+    const intra = !!(home && home === away);
+    const team = t => t ? { n: t.decisions, ok: t.adjCorrect, helped: t.helped, hurt: t.hurt } : null;
+    return {
+      v: 1,
+      all: tally(dec),
+      zone: { in: tally(dec.filter(p => p.inZone)), out: tally(dec.filter(p => !p.inZone)), edge: tally(dec.filter(p => p.edge)) },
+      region: by(p => p.region, ['Top', 'Bottom', 'Inside', 'Outside']),
+      count: by(sit, ['first', 'ahead', 'even', 'behind', 'two', 'three', 'full']),
+      batter: by(p => p.bSide, ['Left', 'Right']),
+      fair: intra ? { intra: true } : { intra: false, home: team(f.find(t => t.team === home)), away: team(f.find(t => t.team === away)) }
+    };
+  }
+
   function trendPoint(A, Z) {
     const pz = perceived(A.pitches, Z, { step: 1 });
     const f = A.fair; const s = A.summary;
@@ -230,6 +251,6 @@
     };
   }
 
-  root.UmpEngine = { ZONES, EDGE_BAND, normalize, classify, summarize, perceived, fairness, breakdowns, hbpReview, analyzeGame, trendPoint, inBox, edgeDist };
+  root.UmpEngine = { ZONES, EDGE_BAND, normalize, classify, summarize, perceived, fairness, breakdowns, hbpReview, analyzeGame, gameStats, trendPoint, inBox, edgeDist };
   if (typeof module !== 'undefined') module.exports = root.UmpEngine;
 })(typeof window !== 'undefined' ? window : globalThis);

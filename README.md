@@ -11,6 +11,9 @@ Hosted on Cloudflare Workers at **myplatereport.com**.
 | `public/index.html` | Home page |
 | `public/admin/` | Admin: send a report (upload CSV, team names, pick umpire from roster, preview, send) |
 | `public/admin/dashboard/` | Staff dashboard: headline numbers, weekly staff accuracy, spread of game scores, spotlights (improvers, top accuracy, edges, consistency, fewest misses, check-ins), latest games. Master at `/admin/dashboard/`, coordinators land on it at `/coord/` |
+| `public/admin/teams/` | Master admin: team names and each team's conference (a game belongs to the home team's conference) |
+| `public/js/staff-stats.js` | Staff math shared by the dashboard and the weekly email |
+| `src/digest.js` | Weekly staff email (Wednesdays, Cloudflare cron in `wrangler.toml`) |
 | `public/admin/umpires/` | Umpire roster, roster CSV import, each umpire's trends, games and reports (also served at `/coord/umpires/` for coordinators) |
 | `public/admin/import/` | Master admin: silent season import |
 | `public/admin/coordinators/` | Master admin: add coordinators, set conferences and access tier, send invites |
@@ -61,5 +64,5 @@ First-time setup (Cloudflare dashboard):
 4. Email delivery (Resend) ✓ with PDF attachment (Browser Run + KV) ← *current*
 5. Umpire roster page with CSV import ✓
 6. Conference coordinator access (view / send / full) ✓
-7. Staff dashboard ✓ (staff trend email every few weeks still to come)
+7. Staff dashboard ✓ with goals, miss locations, counts, home/visitor, report opens, conference comparison, conference-games filter; weekly Wednesday email ✓
 8. Umpire portal at /portal ✓

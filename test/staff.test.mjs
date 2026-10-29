@@ -1,0 +1,100 @@
+import { DatabaseSync } from 'node:sqlite';
+import fs from 'node:fs';
+import worker from '../src/index.js';
+const T = (await import('../public/js/trackman-csv.js')).default;
+const sql = new DatabaseSync(':memory:');
+const norm = a => a.map(v => v === undefined ? null : v);
+const stmt = (q, args = []) => ({ bind: (...a) => stmt(q, norm(a)), first: async () => sql.prepare(q).get(...args) ?? null, run: async () => (sql.prepare(q).run(...args), {}), all: async () => ({ results: sql.prepare(q).all(...args) }) });
+const mails = []; globalThis.fetch = async (u, o) => { mails.push(JSON.parse(o.body)); return new Response('{"id":"em"}'); };
+const kv = new Map(); let pdfs = 0;
+const env = { DB: { prepare: q => stmt(q), batch: async l => { for (const s of l) await s.run(); } }, ASSETS: { fetch: async () => new Response('') }, RESEND_API_KEY: 'x', REPLY_TO: 'bohearn3@gmail.com',
+  PDFS: { put: async (k, v) => { kv.set(k, await new Response(v).arrayBuffer()); }, get: async k => kv.has(k) ? new Response(kv.get(k)).body : null, delete: async k => kv.delete(k) },
+  BROWSER: { quickAction: async () => { pdfs++; return new Response(new Uint8Array([37, 80, 68, 70])); } } };
+const O = 'https://myplatereport.com';
+const call = async (path, { method = 'GET', body, headers = {} } = {}) => { const r = await worker.fetch(new Request(O + path, { method, headers: { 'content-type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined }), env); let j = null; try { j = await r.clone().json(); } catch { } return { status: r.status, j }; };
+const M = { 'cf-access-authenticated-user-email': 'brooks@shamrockhomes.us' };
+let pass = 0, fail = 0; const check = (l, c, x = '') => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${l}${x ? '  ' + x : ''}`); };
+const SS = globalThis.StaffStats;
+const Bn = JSON.parse(fs.readFileSync('/mnt/user-data/outputs/MyPlateReport 2026 season import.json'));
+const names = [...new Set(Bn.games.map(g => g.umpireName))].filter(n => n !== 'TBD').slice(0, 8);
+await call('/admin/api/umpires/import', { method: 'POST', headers: M, body: { tag: 'WCC', rows: names.map((n, i) => ({ name: n, email: `w${i}@x.com` })) } });
+await call('/admin/api/umpires/import', { method: 'POST', headers: M, body: { tag: 'PacWest', rows: [{ name: names[0], email: 'w0@x.com' }, { name: 'Pat West', email: 'pw@x.com' }] } });
+let L = (await call('/admin/api/umpires', { headers: M })).j.umpires; const id = n => L.find(u => u.name === n).id;
+let nImp = 0;
+for (const g of Bn.games.filter(g => names.includes(g.umpireName))) { const { umpireName, ...game } = g; await call('/admin/api/games/import', { method: 'POST', headers: M, body: { umpireId: id(umpireName), fields: Bn.fields, game, teams: Bn.teams } }); nImp++; }
+let r, d;
+// stats stored on import; simulate older games without stats, then backfill
+sql.prepare('UPDATE games SET stats_json = NULL').run();
+d = await call('/admin/api/dashboard', { headers: M }); check('dashboard reports games missing stats', d.j.statsMissing === nImp, `${d.j.statsMissing} of ${nImp}`);
+let left = nImp, loops = 0; while (left > 0 && loops < 50) { r = await call('/admin/api/games/backfill', { method: 'POST', headers: M }); left = r.j.remaining; loops++; }
+d = await call('/admin/api/dashboard', { headers: M });
+check('backfill fills every game, 4 at a time', d.j.statsMissing === 0 && loops === Math.ceil(nImp / 4), `${loops} calls`);
+const g0 = d.j.games[0]; check('per-game stats have regions, counts, fairness', !!g0.stats.region.Top && !!g0.stats.count.full && 'fair' in g0.stats);
+const tot = d.j.games.reduce((s, g) => s + g.stats.all.scb + g.stats.all.bcs, 0), mis = d.j.games.reduce((s, g) => s + g.misses, 0);
+check('stored miss splits add up to the games\' missed calls', tot === mis, `${tot} vs ${mis}`);
+const sum = SS.summarize(d.j.games, Object.fromEntries(d.j.umpires.map(u => [u.id, u])));
+const regSum = sum.missMap.regions.reduce((s, x) => s + x.miss, 0);
+check('miss regions cover every miss', regSum === sum.missMap.total, `${regSum}/${sum.missMap.total}`);
+check('situations cover every called pitch', sum.situations.reduce((s, x) => s + x.n, 0) === d.j.games.reduce((s, g) => s + g.stats.all.n, 0));
+check('home/visitor split adds up to non-intrasquad misses', sum.fair.favorHome + sum.fair.favorAway === d.j.games.filter(g => !g.stats.fair.intra).reduce((s, g) => s + g.stats.all.scb + g.stats.all.bcs, 0));
+check('unranked list holds umpires under 3 games', sum.spot.unranked.every(x => x.n < 3) && sum.spot.top.every(x => x.n >= 3));
+// team conferences
+r = await call('/admin/api/teams/admin', { headers: M });
+check('teams list with suggestions', r.status === 200 && r.j.teams.length > 5 && r.j.teams.some(t => t.suggest === 'WCC'), `${r.j.teams.filter(t => t.suggest).length} suggested`);
+const wccTeams = r.j.teams.filter(t => t.suggest === 'WCC');
+await call('/admin/api/teams/admin', { method: 'PUT', headers: M, body: { teams: wccTeams.slice(0, 1).map(t => ({ ...t, conference: 'pacwest' })).concat(wccTeams.slice(1).map(t => ({ ...t, conference: 'wcc' }))) } });
+d = await call('/admin/api/dashboard', { headers: M });
+check('conference saved with the existing spelling', d.j.games.some(g => g.home_conf === 'WCC') && d.j.games.some(g => g.home_conf === 'PacWest'));
+const pw = SS.selectGames(d.j.games, d.j.umpires, { confs: ['PacWest'], mode: 'conference' });
+const pwAll = SS.selectGames(d.j.games, d.j.umpires, { confs: ['PacWest'], mode: 'umpire' });
+check('conference-games filter keeps only PacWest home games', pw.games.length > 0 && pw.games.every(g => g.home_conf === 'PacWest') && pwAll.games.length > pw.games.length, `${pw.games.length} of ${pwAll.games.length}`);
+// coordinators + goals
+await call('/admin/api/coordinators', { method: 'POST', headers: M, body: { name: 'Fran Full', email: 'f@x.com', conferences: ['WCC'], tier: 'full' } });
+await call('/admin/api/coordinators', { method: 'POST', headers: M, body: { name: 'Val View', email: 'v@x.com', conferences: ['WCC'], tier: 'view', weekly_email: false } });
+const signIn = async e => { await call('/coord/api/login/start', { method: 'POST', body: { email: e } }); const c = mails.at(-1).subject.match(/(\d{6})/)[1]; const w = await worker.fetch(new Request(O + '/coord/api/login/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: e, code: c }) }), env); return { cookie: w.headers.get('set-cookie').split(';')[0], origin: O }; };
+const F = await signIn('f@x.com'), V = await signIn('v@x.com');
+r = await call('/coord/api/goals', { method: 'PUT', headers: V, body: { conference: 'WCC', metric: 'adj', target: 92 } }); check('view tier cannot set goals', r.status === 403);
+r = await call('/coord/api/goals', { method: 'PUT', headers: F, body: { conference: 'PacWest', metric: 'adj', target: 92 } }); check('coordinator cannot set another conference\'s goal', r.status === 403);
+r = await call('/coord/api/goals', { method: 'PUT', headers: F, body: { conference: 'wcc', metric: 'adj', target: 140 } }); check('silly target refused', r.status === 400);
+r = await call('/coord/api/goals', { method: 'PUT', headers: F, body: { conference: 'wcc', metric: 'adj', target: 92 } }); check('full tier sets a goal', r.status === 200);
+await call('/admin/api/goals', { method: 'PUT', headers: M, body: { conference: 'PacWest', metric: 'misses', target: 12 } });
+d = await call('/coord/api/dashboard', { headers: F }); check('coordinator sees only their conference goals', d.j.goals.length === 1 && d.j.goals[0].target === 0.92 && d.j.goals[0].conference === 'WCC');
+check('coordinator dashboard limited to their umpires', d.j.umpires.every(u => u.tags.includes('WCC')));
+const gp = SS.goalProgress(d.j.goals[0], SS.summarize(d.j.games, Object.fromEntries(d.j.umpires.map(u => [u.id, u]))));
+check('goal progress computed', gp.cur != null && typeof gp.met === 'boolean', `${(gp.cur * 100).toFixed(1)}% vs 92%`);
+await call('/admin/api/coordinators/' + (await call('/admin/api/coordinators', { headers: M })).j.coordinators.find(c => c.email === 'v@x.com').id, { method: 'GET', headers: M });
+check('weekly email off is saved', sql.prepare("SELECT weekly_email FROM coordinators WHERE email = 'v@x.com'").get().weekly_email === 0);
+// report opens
+const p = T.parseTrackman(fs.readFileSync(process.argv[2], 'utf8'), 'g.csv');
+const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+r = await call('/admin/api/reports', { method: 'POST', headers: M, body: { umpire: { name: names[1], email: 'w1@x.com' }, report: { fields: p.fields, games: [{ ...p.game, Date: yest }], teams: {} }, attachPdf: false } });
+const rid = r.j.url.split('/r/')[1];
+await call('/api/reports/' + rid, { headers: { cookie: F.cookie } });
+await call('/api/reports/' + rid, { headers: { cookie: 'CF_Authorization=abc' } });
+await call('/api/reports/' + rid + '?pdf=1');
+let rr = sql.prepare('SELECT open_count, first_opened_at FROM reports WHERE id = ?').get(rid);
+check('staff and PDF renders do not count as opens', rr.open_count === 0 && !rr.first_opened_at);
+await call('/api/reports/' + rid); await call('/api/reports/' + rid);
+rr = sql.prepare('SELECT open_count, first_opened_at FROM reports WHERE id = ?').get(rid);
+check('umpire opens counted', rr.open_count === 2 && !!rr.first_opened_at);
+d = await call('/admin/api/umpires/' + id(names[1]), { headers: M }); check('roster card gets open info', d.j.reports[0].open_count === 2);
+// weekly email
+mails.length = 0;
+await worker.scheduled({}, env, { waitUntil: () => {} });
+await new Promise(r => setTimeout(r, 50));
+const toList = mails.map(m => m.to[0]);
+check('weekly run emails master and full-tier coordinator', toList.includes('bohearn3@gmail.com') && toList.includes('f@x.com'), toList.join(', '));
+check('coordinator with weekly email off is skipped', !toList.includes('v@x.com'));
+const fm = mails.find(m => m.to[0] === 'f@x.com');
+check('only new games count, not the season import', /1 game/.test(fm.subject) && /WCC weekly report/.test(fm.subject), fm.subject);
+check('coordinator email links to their dashboard and shows the goal', fm.html.includes('/coord/') && /Goals/.test(fm.html) && /Adjusted accuracy/.test(fm.html));
+check('master email has the conference table', /Conferences this week/.test(mails.find(m => m.to[0] === 'bohearn3@gmail.com').html));
+mails.length = 0; await worker.scheduled({}, env, { waitUntil: () => {} }); await new Promise(r => setTimeout(r, 50));
+check('a second run the same day sends nothing', mails.length === 0, mails.map(m => m.to[0]).join());
+mails.length = 0;
+const vid = (await call('/admin/api/coordinators', { headers: M })).j.coordinators.find(c => c.email === 'v@x.com').id;
+r = await call('/admin/api/coordinators/digest-preview', { method: 'POST', headers: M, body: { coordinatorId: vid } });
+check('preview goes to the admin, labelled', r.status === 200 && mails.length === 1 && mails[0].to[0] === 'bohearn3@gmail.com' && mails[0].subject.startsWith('[Preview]'), mails[0]?.subject);
+fs.writeFileSync('/tmp/claude-0/-home-claude/872964eb-941d-50de-aa00-00da5e85d73d/scratchpad/digest_preview.html', mails[0].html);
+r = await call('/coord/api/coordinators/digest-preview', { method: 'POST', headers: F, body: {} }); check('coordinators cannot send previews', r.status === 403);
+console.log(`\n${pass} passed, ${fail} failed`);

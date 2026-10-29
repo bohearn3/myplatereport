@@ -11,10 +11,13 @@
 //          /portal/login        sign in        /portal/  their own reports and trends      /portal/api/...
 
 import '../public/js/engine.js';
+import '../public/js/staff-stats.js';
 import { reportEmail, codeEmail, inviteEmail, portalInviteEmail } from './email.js';
+import { buildDigest } from './digest.js';
 import { startLogin, verifyLogin, sessionUser, endSession, sessionCookie } from './auth.js';
 
 const E = globalThis.UmpEngine;
+const SS = globalThis.StaffStats;
 const FROM = 'MyPlateReport <reports@myplatereport.com>';
 const TIERS = ['view', 'send', 'full'];
 
@@ -70,6 +73,16 @@ async function ensureSchema(db) {
     await db.prepare(`CREATE INDEX IF NOT EXISTS ump_codes_email ON ump_codes (email, created_at)`).run();
     await db.prepare(`CREATE TABLE IF NOT EXISTS ump_sessions (id_hash TEXT PRIMARY KEY, umpire_id TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, user_agent TEXT)`).run();
     await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '5') ON CONFLICT(k) DO UPDATE SET v = '5'`).run();
+  }
+  if (ver < 6) {
+    // Dashboard detail stats, team conferences, goals, report opens, weekly email.
+    for (const q of [`ALTER TABLE games ADD COLUMN stats_json TEXT`, `ALTER TABLE teams ADD COLUMN conference TEXT`,
+      `ALTER TABLE reports ADD COLUMN first_opened_at TEXT`, `ALTER TABLE reports ADD COLUMN last_opened_at TEXT`, `ALTER TABLE reports ADD COLUMN open_count INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE coordinators ADD COLUMN weekly_email INTEGER NOT NULL DEFAULT 1`]) { try { await db.prepare(q).run(); } catch (e) { /* already there */ } }
+    await db.prepare(`CREATE TABLE IF NOT EXISTS goals (id TEXT PRIMARY KEY, conference TEXT NOT NULL, metric TEXT NOT NULL, target REAL NOT NULL, created_by TEXT, created_at TEXT NOT NULL, UNIQUE (conference, metric))`).run();
+    await db.prepare(`CREATE TABLE IF NOT EXISTS digest_log (at TEXT NOT NULL, week TEXT NOT NULL, to_email TEXT NOT NULL, kind TEXT, status TEXT)`).run();
+    await db.prepare(`INSERT INTO meta (k, v) VALUES ('engagement_since', ?) ON CONFLICT(k) DO NOTHING`).bind(new Date().toISOString()).run();
+    await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '6') ON CONFLICT(k) DO UPDATE SET v = '6'`).run();
   }
   schemaReady = true;
 }
@@ -134,16 +147,16 @@ async function saveTeams(db, teams, t) {
   if (stmts.length) await db.batch(stmts);
 }
 // Same umpire + same Trackman game replaces the stored copy instead of duplicating it.
-async function saveGame(db, umpireId, g, fields, s, t) {
+async function saveGame(db, umpireId, g, fields, s, t, stats) {
   const gameKey = g.GameID || `${g.Date}|${g.HomeTeam}|${g.AwayTeam}`;
   const existing = await db.prepare('SELECT id FROM games WHERE umpire_id = ? AND game_key = ?').bind(umpireId, gameKey).first();
   const gameId = existing ? existing.id : token(9);
-  await db.prepare(`INSERT INTO games (id, umpire_id, game_key, date, home, away, stadium, level, file, fields_json, pitches_json, created_at, adj, raw, decisions, misses, edge)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  await db.prepare(`INSERT INTO games (id, umpire_id, game_key, date, home, away, stadium, level, file, fields_json, pitches_json, created_at, adj, raw, decisions, misses, edge, stats_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET date = excluded.date, home = excluded.home, away = excluded.away, stadium = excluded.stadium, level = excluded.level, file = excluded.file,
-      fields_json = excluded.fields_json, pitches_json = excluded.pitches_json, adj = excluded.adj, raw = excluded.raw, decisions = excluded.decisions, misses = excluded.misses, edge = excluded.edge`)
+      fields_json = excluded.fields_json, pitches_json = excluded.pitches_json, adj = excluded.adj, raw = excluded.raw, decisions = excluded.decisions, misses = excluded.misses, edge = excluded.edge, stats_json = excluded.stats_json`)
     .bind(gameId, umpireId, gameKey, g.Date, g.HomeTeam, g.AwayTeam, g.Stadium, g.Level, g.file, JSON.stringify(fields), JSON.stringify(g.pitches), t,
-      s.adj, s.raw, s.decisions, s.missN, s.edgeAcc).run();
+      s.adj, s.raw, s.decisions, s.missN, s.edgeAcc, stats ? JSON.stringify(stats) : null).run();
   return gameId;
 }
 
@@ -157,7 +170,7 @@ async function importGame(env, a, body) {
   const A = E.analyzeGame({ ...g, umpire: u.name }, fields, E.ZONES.nsi2027);
   const t = now();
   await saveTeams(env.DB, body.teams, t);
-  const gameId = await saveGame(env.DB, u.id, g, fields, A.summary, t);
+  const gameId = await saveGame(env.DB, u.id, g, fields, A.summary, t, E.gameStats(A));
   let rep = await env.DB.prepare('SELECT id FROM reports WHERE game_id = ? ORDER BY created_at LIMIT 1').bind(gameId).first();
   if (!rep) {
     rep = { id: token() };
@@ -192,7 +205,7 @@ async function saveReport(request, env, a, body) {
   const A = E.analyzeGame({ ...g, umpire: name }, rep.fields, E.ZONES.nsi2027);
   const s = A.summary;
   await saveTeams(db, rep.teams, t);
-  const gameId = await saveGame(db, umpire.id, g, rep.fields, s, t);
+  const gameId = await saveGame(db, umpire.id, g, rep.fields, s, t, E.gameStats(A));
   const reportId = token();
   await db.prepare('INSERT INTO reports (id, game_id, umpire_id, created_by, created_at) VALUES (?, ?, ?, ?, ?)').bind(reportId, gameId, umpire.id, a.email, t).run();
   const origin = new URL(request.url).origin;
@@ -292,7 +305,7 @@ async function sendEmail(env, payload) {
 }
 
 /* ---------------- report data (public by private link) ---------------- */
-async function getReport(id, env) {
+async function getReport(id, env, request) {
   if (!env.DB || !/^[A-Za-z0-9_-]{16,40}$/.test(id)) return json({ error: 'Report not found.' }, 404);
   await ensureSchema(env.DB);
   const rep = await env.DB.prepare(`SELECT r.id, r.game_id, r.revoked_at, g.date, u.id AS umpire_id, u.name AS umpire FROM reports r
@@ -312,6 +325,12 @@ async function getReport(id, env) {
   if (codes.length) {
     const t = await env.DB.prepare(`SELECT code, short_name, full_name FROM teams WHERE code IN (${codes.map(() => '?').join(',')})`).bind(...codes).all();
     for (const row of t.results) teams[row.code] = [row.short_name, row.full_name];
+  }
+  // Count opens by the umpire, not by staff checking the link (coordinator session or the admin's Cloudflare Access cookie).
+  const ck = request ? request.headers.get('cookie') || '' : '';
+  if (request && !new URL(request.url).searchParams.has('pdf') && !/(^|;\s*)(mpr_session|CF_Authorization)=/.test(ck)) {
+    const t = now();
+    await env.DB.prepare('UPDATE reports SET open_count = COALESCE(open_count, 0) + 1, first_opened_at = COALESCE(first_opened_at, ?), last_opened_at = ? WHERE id = ?').bind(t, t, id).run();
   }
   return json({ fields, currentFile: rep.game_id, games, teams, reportId: id });
 }
@@ -361,24 +380,121 @@ async function getUmpire(id, env, a) {
       th.full_name AS home_name, ta.full_name AS away_name
     FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away
     WHERE g.umpire_id = ? ORDER BY g.date DESC, g.created_at DESC`).bind(id).all()).results;
-  const reports = (await env.DB.prepare(`SELECT id, game_id, created_at, created_by, email_status, emailed_at, pdf_status FROM reports WHERE umpire_id = ? AND revoked_at IS NULL ORDER BY created_at DESC`).bind(id).all()).results;
+  const reports = (await env.DB.prepare(`SELECT id, game_id, created_at, created_by, email_status, emailed_at, pdf_status, first_opened_at, open_count FROM reports WHERE umpire_id = ? AND revoked_at IS NULL ORDER BY created_at DESC`).bind(id).all()).results;
   const { phone, notes, active, created_at, name, email, portal, last_login } = u;
   return json({ umpire: { id, name, email, phone, notes, active, created_at, portal: portal ? 1 : 0, last_login: last_login || null, tags: parseTags(u.tags) }, games, reports });
 }
-// Dashboard: one compact row per game for every umpire in scope; the page does the math.
-async function dashboard(env, a) {
-  const ups = (await env.DB.prepare('SELECT id, name, tags, active, portal FROM umpires ORDER BY name COLLATE NOCASE').all()).results
-    .map(u => ({ id: u.id, name: u.name, tags: parseTags(u.tags), active: u.active, portal: u.portal ? 1 : 0 })).filter(u => inScope(a, u.tags));
+// Dashboard: one compact row per game for every umpire in scope; the page (and the weekly email) do the math with StaffStats.
+async function dashboardData(env, a) {
+  const ups = (await env.DB.prepare('SELECT id, name, email, tags, active, portal, last_login FROM umpires ORDER BY name COLLATE NOCASE').all()).results
+    .map(u => ({ id: u.id, name: u.name, email: u.email, tags: parseTags(u.tags), active: u.active, portal: u.portal ? 1 : 0, last_login: u.last_login || null })).filter(u => inScope(a, u.tags));
   const ids = new Set(ups.map(u => u.id));
-  const games = (await env.DB.prepare(`SELECT g.id, g.umpire_id, g.date, g.home, g.away, g.level, g.adj, g.raw, g.misses, g.edge, g.decisions,
-      th.full_name AS home_name, ta.full_name AS away_name
+  const games = (await env.DB.prepare(`SELECT g.id, g.umpire_id, g.date, g.home, g.away, g.level, g.adj, g.raw, g.misses, g.edge, g.decisions, g.stats_json, g.created_at,
+      th.full_name AS home_name, ta.full_name AS away_name, th.conference AS home_conf
     FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away ORDER BY g.date, g.created_at`).all()).results.filter(g => ids.has(g.umpire_id));
-  const reports = {};
-  for (const r of (await env.DB.prepare('SELECT id, game_id FROM reports WHERE revoked_at IS NULL ORDER BY created_at DESC').all()).results)
-    if (!reports[r.game_id]) reports[r.game_id] = r.id;
-  const live = {}; for (const g of games) if (reports[g.id]) live[g.id] = reports[g.id];
-  return json({ umpires: ups, games, reports: live });
+  const reps = {};
+  for (const r of (await env.DB.prepare('SELECT id, game_id, emailed_at, email_status, first_opened_at, open_count FROM reports WHERE revoked_at IS NULL ORDER BY created_at DESC').all()).results)
+    if (!reps[r.game_id]) reps[r.game_id] = r;
+  for (const g of games) {
+    try { g.stats = g.stats_json ? JSON.parse(g.stats_json) : null; } catch { g.stats = null; }
+    delete g.stats_json;
+    const r = reps[g.id];
+    g.report = r ? { id: r.id, emailed_at: r.email_status === 'sent' ? r.emailed_at : null, first_opened_at: r.first_opened_at || null, open_count: r.open_count || 0 } : null;
+  }
+  const confs = isMaster(a) ? null : a.conferences.map(lc);
+  const goals = (await env.DB.prepare('SELECT id, conference, metric, target, created_by, created_at FROM goals ORDER BY conference, metric').all()).results
+    .filter(g => !confs || confs.includes(lc(g.conference)));
+  const since = (await env.DB.prepare(`SELECT v FROM meta WHERE k = 'engagement_since'`).first())?.v || null;
+  const missing = (await env.DB.prepare('SELECT COUNT(*) AS n FROM games WHERE stats_json IS NULL').first())?.n || 0;
+  return { umpires: ups, games, goals, trackSince: since, statsMissing: missing };
 }
+async function dashboard(env, a) { return json(await dashboardData(env, a)); }
+
+// Older games were saved before per-game detail stats existed: fill them in a few at a time (any staff dashboard calls this until done).
+async function backfillStats(env, a) {
+  const { results } = await env.DB.prepare('SELECT id, date, home, away, stadium, fields_json, pitches_json FROM games WHERE stats_json IS NULL LIMIT 4').all();
+  for (const g of results) {
+    const A = E.analyzeGame({ Date: g.date, HomeTeam: g.home, AwayTeam: g.away, Stadium: g.stadium, pitches: JSON.parse(g.pitches_json) }, JSON.parse(g.fields_json), E.ZONES.nsi2027);
+    await env.DB.prepare('UPDATE games SET stats_json = ? WHERE id = ?').bind(JSON.stringify(E.gameStats(A)), g.id).run();
+  }
+  const left = (await env.DB.prepare('SELECT COUNT(*) AS n FROM games WHERE stats_json IS NULL').first())?.n || 0;
+  return json({ ok: true, done: results.length, remaining: left });
+}
+
+/* ---------------- teams: names and conference (master) ---------------- */
+async function teamsAdmin(env, a, rest, m, body) {
+  if (!isMaster(a)) throw new HttpError(403, 'Only the site admin can edit teams.');
+  const db = env.DB;
+  if (rest === '' && m === 'GET') {
+    const teams = (await db.prepare('SELECT code, short_name, full_name, conference FROM teams ORDER BY code').all()).results;
+    const games = (await db.prepare('SELECT g.home, g.away, u.tags FROM games g JOIN umpires u ON u.id = g.umpire_id').all()).results;
+    const info = {};
+    const add = (code, k) => { (info[code] ||= { home: 0, away: 0, tags: {} })[k]++; };
+    for (const g of games) {
+      add(g.home, 'home'); if (g.away !== g.home) add(g.away, 'away');
+      for (const t of parseTags(g.tags)) { const i = info[g.home]; i.tags[t] = (i.tags[t] || 0) + 1; }
+    }
+    const codes = new Set([...teams.map(t => t.code), ...Object.keys(info)]);
+    const byCode = Object.fromEntries(teams.map(t => [t.code, t]));
+    const list = [...codes].filter(Boolean).sort().map(code => {
+      const t = byCode[code] || { code }, i = info[code] || { home: 0, away: 0, tags: {} };
+      const best = Object.entries(i.tags).sort((x, y) => y[1] - x[1])[0];
+      // Suggest the conference most often tagged on umpires who worked this team's home games (a clear majority only).
+      const total = Object.values(i.tags).reduce((x, y) => x + y, 0);
+      const suggest = best && i.home && best[1] / i.home >= 0.6 && best[1] >= total * 0.5 ? best[0] : null;
+      return { code, short_name: t.short_name || null, full_name: t.full_name || null, conference: t.conference || null, home_games: i.home, away_games: i.away, suggest };
+    });
+    return json({ teams: list, conferences: [...(await tagSpellings(env)).values()].sort() });
+  }
+  if (rest === '' && m === 'PUT') {
+    const rows = Array.isArray(body?.teams) ? body.teams.slice(0, 500) : [];
+    const spell = await tagSpellings(env);
+    let n = 0;
+    for (const r of rows) {
+      const code = String(r.code || '').trim().slice(0, 40); if (!code) continue;
+      const conf = cleanTags([r.conference || ''])[0] || null;
+      await db.prepare(`INSERT INTO teams (code, short_name, full_name, conference, updated_at) VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(code) DO UPDATE SET short_name = excluded.short_name, full_name = excluded.full_name, conference = excluded.conference, updated_at = excluded.updated_at`)
+        .bind(code, String(r.short_name || '').trim().slice(0, 60) || null, String(r.full_name || '').trim().slice(0, 120) || null, conf ? canon([conf], spell)[0] : null, now()).run();
+      n++;
+    }
+    await audit(db, a, 'edit_teams', { teams: n });
+    return json({ ok: true, saved: n });
+  }
+  return json({ error: 'Not found.' }, 404);
+}
+
+/* ---------------- staff goals ---------------- */
+async function goalsApi(env, a, rest, m, body) {
+  const db = env.DB;
+  const mine = c => isMaster(a) || a.conferences.some(x => lc(x) === lc(c));
+  if (rest === '' && m === 'PUT') {
+    if (!isMaster(a)) need(a, 'full');
+    const conference = cleanTags([body?.conference || ''])[0], metric = body?.metric, M = SS.METRICS[metric];
+    const target = Number(body?.target);
+    if (!conference || !M || !Number.isFinite(target)) return json({ error: 'Choose a conference, a measure and a target.' }, 400);
+    if (!mine(conference)) throw new HttpError(403, 'You can only set goals for your own conference.');
+    const val = M.parse(target);
+    if (M.unit === '%' ? (val <= 0.5 || val > 1) : (val < 0 || val > 60)) return json({ error: M.unit === '%' ? 'Enter a target between 50 and 100.' : 'Enter a target between 0 and 60.' }, 400);
+    const conf = canon([conference], await tagSpellings(env))[0];
+    await db.prepare(`INSERT INTO goals (id, conference, metric, target, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(conference, metric) DO UPDATE SET target = excluded.target, created_by = excluded.created_by, created_at = excluded.created_at`)
+      .bind(token(9), conf, metric, val, a.email, now()).run();
+    await audit(db, a, 'set_goal', { conference: conf, metric, target: val });
+    return json({ ok: true });
+  }
+  const one = rest.match(/^\/([A-Za-z0-9_-]+)$/);
+  if (one && m === 'DELETE') {
+    if (!isMaster(a)) need(a, 'full');
+    const g = await db.prepare('SELECT * FROM goals WHERE id = ?').bind(one[1]).first();
+    if (!g || !mine(g.conference)) return json({ error: 'Goal not found.' }, 404);
+    await db.prepare('DELETE FROM goals WHERE id = ?').bind(g.id).run();
+    await audit(db, a, 'remove_goal', { conference: g.conference, metric: g.metric });
+    return json({ ok: true });
+  }
+  return json({ error: 'Not found.' }, 404);
+}
+
 function cleanUmpire(o) {
   return {
     name: String(o.name || '').replace(/\s+/g, ' ').trim().slice(0, 120),
@@ -454,14 +570,15 @@ function cleanCoordinator(o) {
     email: String(o.email || '').trim().toLowerCase().slice(0, 200),
     conferences: cleanTags(o.conferences),
     tier: TIERS.includes(o.tier) ? o.tier : 'view',
-    active: o.active === false || o.active === 0 ? 0 : 1
+    active: o.active === false || o.active === 0 ? 0 : 1,
+    weekly: o.weekly_email === false || o.weekly_email === 0 ? 0 : 1
   };
 }
 async function coordinatorsApi(request, env, a, rest, m, body) {
   if (!isMaster(a)) throw new HttpError(403, 'Only the site admin can manage coordinators.');
   const db = env.DB;
   if (rest === '' && m === 'GET') {
-    const { results } = await db.prepare('SELECT id, name, email, conferences, tier, active, created_at, last_login FROM coordinators ORDER BY active DESC, name COLLATE NOCASE').all();
+    const { results } = await db.prepare('SELECT id, name, email, conferences, tier, active, weekly_email, created_at, last_login FROM coordinators ORDER BY active DESC, name COLLATE NOCASE').all();
     return json({ coordinators: results.map(c => ({ ...c, conferences: parseTags(c.conferences) })) });
   }
   if (rest === '' && m === 'POST') {
@@ -471,9 +588,15 @@ async function coordinatorsApi(request, env, a, rest, m, body) {
     if (!c.conferences.length) return json({ error: 'Pick at least one conference.' }, 400);
     if (await db.prepare('SELECT id FROM coordinators WHERE email = ?').bind(c.email).first()) return json({ error: 'A coordinator with that email already exists.' }, 409);
     const id = token(9);
-    await db.prepare('INSERT INTO coordinators (id, name, email, conferences, tier, active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(id, c.name, c.email, JSON.stringify(c.conferences), c.tier, c.active, now()).run();
+    await db.prepare('INSERT INTO coordinators (id, name, email, conferences, tier, active, weekly_email, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, c.name, c.email, JSON.stringify(c.conferences), c.tier, c.active, c.weekly, now()).run();
     return json({ ok: true, id });
+  }
+  if (rest === '/digest-preview' && m === 'POST') {
+    const origin = new URL(request.url).origin;
+    const out = await runWeekly(env, origin, { preview: true, previewTo: env.DIGEST_TO || env.REPLY_TO || a.email, coordinatorId: body?.coordinatorId || null, masterOnly: !body?.coordinatorId });
+    if (!out.sent.length) return json({ error: out.skipped.length ? 'No games to report for that staff yet.' : 'Nothing to send.' }, 400);
+    return json({ ok: true, message: `Preview sent to ${env.DIGEST_TO || env.REPLY_TO || a.email}.` });
   }
   const one = rest.match(/^\/([A-Za-z0-9_-]+)(\/invite)?$/);
   if (one) {
@@ -485,8 +608,8 @@ async function coordinatorsApi(request, env, a, rest, m, body) {
       if (!c.name || !validEmail(c.email)) return json({ error: 'Enter a name and a valid email.' }, 400);
       if (!c.conferences.length) return json({ error: 'Pick at least one conference.' }, 400);
       if (await db.prepare('SELECT id FROM coordinators WHERE email = ? AND id <> ?').bind(c.email, cur.id).first()) return json({ error: 'Another coordinator already uses that email.' }, 409);
-      await db.prepare('UPDATE coordinators SET name = ?, email = ?, conferences = ?, tier = ?, active = ? WHERE id = ?')
-        .bind(c.name, c.email, JSON.stringify(c.conferences), c.tier, c.active, cur.id).run();
+      await db.prepare('UPDATE coordinators SET name = ?, email = ?, conferences = ?, tier = ?, active = ?, weekly_email = ? WHERE id = ?')
+        .bind(c.name, c.email, JSON.stringify(c.conferences), c.tier, c.active, c.weekly, cur.id).run();
       // Turning someone off, or changing their email, signs them out everywhere.
       if (!c.active || c.email !== cur.email) await db.prepare('DELETE FROM sessions WHERE coordinator_id = ?').bind(cur.id).run();
       return json({ ok: true });
@@ -517,6 +640,9 @@ async function api(request, env, a, sub) {
   if (sub === '/reports' && m === 'POST') return saveReport(request, env, a, body || {});
   if (sub === '/umpires' && m === 'GET') return listUmpires(env, a);
   if (sub === '/dashboard' && m === 'GET') return dashboard(env, a);
+  if (sub === '/games/backfill' && m === 'POST') return backfillStats(env, a);
+  if (sub === '/teams/admin' || sub.startsWith('/teams/admin/')) return teamsAdmin(env, a, sub.slice('/teams/admin'.length), m, body);
+  if (sub === '/goals' || sub.startsWith('/goals/')) return goalsApi(env, a, sub.slice('/goals'.length), m, body);
   if (sub === '/umpires' && m === 'POST') {
     need(a, 'full');
     const r = await upsertUmpire(env, a, body || {});
@@ -609,8 +735,50 @@ async function portalApi(request, env, u, sub) {
   return json({ error: 'Not found.' }, 404);
 }
 
+/* ---------------- weekly staff email (Wednesday cron) ---------------- */
+// opts.preview: send to previewTo instead, label it a preview, and fall back to the latest week with games.
+async function runWeekly(env, origin, opts = {}) {
+  await ensureSchema(env.DB);
+  const nowIso = opts.nowIso || now();
+  const week = nowIso.slice(0, 10);
+  const sent = [], skipped = [];
+  const already = async to => !opts.preview && !!(await env.DB.prepare('SELECT 1 FROM digest_log WHERE week = ? AND to_email = ? AND status = ?').bind(week, to, 'sent').first());
+  const deliver = async (to, kind, msg) => {
+    if (!env.RESEND_API_KEY) { skipped.push({ to, why: 'email not set up' }); return; }
+    const out = await sendEmail(env, { from: FROM, to: [opts.preview ? opts.previewTo : to], reply_to: env.REPLY_TO, subject: msg.subject, html: msg.html, text: msg.text });
+    if (!opts.preview) await env.DB.prepare('INSERT INTO digest_log (at, week, to_email, kind, status) VALUES (?, ?, ?, ?, ?)').bind(now(), week, to, kind, out.ok ? 'sent' : `failed: ${out.message}`).run();
+    (out.ok ? sent : skipped).push({ to, kind, why: out.ok ? null : out.message });
+  };
+  if (!opts.coordinatorId) {
+    const to = env.DIGEST_TO || env.REPLY_TO;
+    if (to && !(await already(to))) {
+      const data = await dashboardData(env, { kind: 'master', email: to });
+      const msg = buildDigest({ data, name: 'Brooks', master: true, origin, nowIso, preview: !!opts.preview });
+      if (msg) await deliver(to, 'master', msg); else skipped.push({ to, why: 'no new games' });
+    }
+  }
+  if (!opts.masterOnly) {
+    const coords = opts.coordinatorId
+      ? (await env.DB.prepare('SELECT * FROM coordinators WHERE id = ?').bind(opts.coordinatorId).all()).results
+      : (await env.DB.prepare('SELECT * FROM coordinators WHERE active = 1 AND weekly_email = 1').all()).results;
+    for (const c of coords) {
+      if (await already(c.email)) continue;
+      const a = { kind: 'coord', id: c.id, name: c.name, email: c.email, tier: c.tier, conferences: parseTags(c.conferences) };
+      const data = await dashboardData(env, a);
+      const msg = buildDigest({ data, name: c.name, confs: a.conferences, master: false, origin, nowIso, preview: !!opts.preview });
+      if (msg) await deliver(c.email, 'coordinator', msg); else skipped.push({ to: c.email, why: 'no new games' });
+    }
+  }
+  return { sent, skipped };
+}
+
 /* ---------------- router ---------------- */
 export default {
+  // Cloudflare cron (wrangler.toml): Wednesdays.
+  async scheduled(event, env, ctx) {
+    if (!env.DB) return;
+    ctx.waitUntil(runWeekly(env, env.SITE_ORIGIN || 'https://myplatereport.com').then(r => console.log('weekly email', JSON.stringify(r))));
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const p = url.pathname;
@@ -662,7 +830,7 @@ export default {
     }
 
     const m = p.match(/^\/api\/reports\/([A-Za-z0-9_-]+)$/);
-    if (m && request.method === 'GET') return getReport(m[1], env);
+    if (m && request.method === 'GET') return getReport(m[1], env, request);
     const pdf = p.match(/^\/r\/([A-Za-z0-9_-]+)\/pdf$/);
     if (pdf) return servePdf(pdf[1], env, url.origin);
     if (p.startsWith('/r/')) return env.ASSETS.fetch(new Request(new URL('/report', url), request));

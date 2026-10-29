@@ -12,16 +12,19 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/admin.css">
 <style>
-/* Layout: filters row, headline tiles, staff trend + distribution side by side, spotlight cards (3 across), recent games. */
+/* Layout: filters row; goals; headline tiles; conference comparison (master); trend + spread; misses + situations; home/visitor + engagement; spotlights (3 across); latest games. */
+:root{--c-scb:#1D5E8F;--c-bcs:#D0782A}
+@media (prefers-color-scheme:dark){:root{--c-scb:#4F9BD6;--c-bcs:#C97D30}}
 html,body{height:auto;min-height:100%}
 main{width:100%;max-width:1200px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
 .head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
 h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.4rem);text-transform:uppercase;margin:2px 0 2px;line-height:1}
 .sub{color:var(--muted);margin:0;font-size:.9rem}
 .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.filters select{width:auto;min-width:150px}
+.filters select{width:auto;min-width:140px;max-width:100%}
 .filters .check{display:flex;gap:6px;align-items:center;font-size:.88rem;margin:0;color:var(--ink);font-weight:500}
-h2{font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+h2{font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600;display:flex;justify-content:space-between;align-items:center;gap:10px}
+h2 button{font:inherit;font-size:.8rem;letter-spacing:0;text-transform:none;font-weight:600;color:var(--deep);background:none;border:0;cursor:pointer;padding:4px 0}
 section{margin-top:22px}
 .tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
 .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
@@ -30,15 +33,42 @@ section{margin-top:22px}
 .tile .d{font-size:.78rem;color:var(--muted)}
 .up{color:var(--good);font-weight:700} .down{color:var(--warn);font-weight:700}
 .two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 14px 10px;min-width:0}
-.panel .pt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
-.panel .pt b{font-size:.92rem}
+.half{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.panel .pt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.panel .pt b{font-size:.95rem}
 .panel .pt span{font-size:.76rem;color:var(--muted)}
+.panel .lead{margin:0 0 12px;font-size:.88rem}
 .panel svg{display:block;width:100%;height:auto;overflow:visible}
 .panel svg text{font-family:var(--f-body);fill:var(--muted);font-size:11px}
-.panel svg .hit{fill:transparent;cursor:default}
-.panel svg .hit:hover + .dot,.panel svg g.pt-g:hover .dot{r:6}
-.panel svg g.bar:hover rect.b{fill:var(--powder)}
+.panel svg .hit{fill:transparent}
+.panel svg g.pt-g:hover .dot{r:6}
+.panel svg g.bar:hover path.b{fill:var(--powder)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.76rem;color:var(--muted);margin:0 0 10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:5px}
+.rows{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:132px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.85rem}
+.row .lab{font-weight:600}
+.row .lab small{display:block;font-weight:400;color:var(--muted);font-size:.74rem}
+.row .val{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .val small{display:block;color:var(--muted);font-size:.74rem}
+.track{position:relative;height:14px}
+.stack{display:flex;gap:2px;height:14px}
+.stack span{display:block;height:100%;border-radius:3px}
+.split{display:flex;gap:2px;height:22px;margin:4px 0 6px}
+.split span{display:grid;place-items:center;height:100%;border-radius:4px;color:#fff;font-size:.74rem;font-weight:700;min-width:28px}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+.kv div{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.kv b{display:block;font-family:var(--f-display);font-size:1.4rem;line-height:1.1}
+.kv span{font-size:.76rem;color:var(--muted)}
+.list{list-style:none;margin:6px 0 0;padding:0;font-size:.85rem}
+.list li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.list a{color:var(--ink);font-weight:600;text-decoration:none}
+.list a:hover{color:var(--deep);text-decoration:underline}
+.list .m{color:var(--muted);text-align:right}
+.big{font-family:var(--f-display);font-weight:800;font-size:2.4rem;line-height:1}
+.note{font-size:.8rem;color:var(--muted);margin:8px 0 0}
 .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:flex;flex-direction:column}
 .card h3{margin:0;font-size:1rem}
@@ -51,8 +81,33 @@ section{margin-top:22px}
 .card li .n{display:block;font-size:.76rem;color:var(--muted);font-weight:400}
 .card li .val{font-family:var(--f-display);font-weight:800;font-size:1.35rem;white-space:nowrap;text-align:right}
 .card .none{color:var(--muted);font-size:.85rem;margin:6px 0 0}
+.card .unr{margin:10px 0 0;padding-top:8px;border-top:1px dashed var(--line);font-size:.78rem;color:var(--muted)}
+.card .unr a{color:var(--ink);font-weight:600}
 .card.watch{border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
 .card.watch h3::before{content:"!";display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--warn);color:#fff;font-size:.74rem;margin-right:7px;vertical-align:1px}
+.goals{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.goal{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;position:relative}
+.goal .k{font-size:.76rem;color:var(--muted);font-weight:600;padding-right:22px}
+.goal .v{font-family:var(--f-display);font-weight:800;font-size:1.8rem;line-height:1.05;margin-top:2px}
+.goal .v small{font-family:var(--f-body);font-size:.8rem;font-weight:600;color:var(--muted)}
+.goal .meter{height:8px;border-radius:99px;background:var(--line);margin:8px 0 6px;overflow:hidden}
+.goal .meter span{display:block;height:100%;border-radius:99px;background:var(--deep)}
+.goal.met .meter span{background:var(--good)}
+.goal .s{font-size:.8rem}
+.goal .x{position:absolute;top:8px;right:8px;border:0;background:none;color:var(--muted);font-size:1.1rem;cursor:pointer;width:28px;height:28px;border-radius:6px}
+.goal .x:hover{color:var(--bad);background:var(--bg)}
+.goalform{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;margin-top:10px}
+.goalform label{margin:0 0 4px}
+.goalform select,.goalform input{width:auto}
+.goalform input{width:110px}
+.goalform .primary{width:auto;padding:10px 16px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:0}
+td button.lnk{background:none;border:0;font:inherit;font-weight:700;color:var(--deep);cursor:pointer;padding:0}
 .recent{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .rg{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-width:0}
 .rg .t{min-width:0}
@@ -64,8 +119,8 @@ section{margin-top:22px}
 .foot a{color:var(--deep);font-weight:600}
 .empty{color:var(--muted);text-align:center;padding:50px 10px;border:1px dashed var(--line);border-radius:12px;background:var(--surface)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-@media (max-width:1000px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.two{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.cards,.recent{grid-template-columns:1fr}}
+@media (max-width:1000px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.two,.half{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.cards,.recent{grid-template-columns:1fr}.row{grid-template-columns:96px minmax(0,1fr) auto}}
 </style>
 </head>
 <body>
@@ -83,116 +138,258 @@ section{margin-top:22px}
     <div class="filters">
       <label class="sr" for="season">Season</label><select id="season"></select>
       <label class="sr" for="conf">Conference</label><select id="conf" hidden></select>
+      <label class="sr" for="mode">Which games</label><select id="mode"></select>
       <label class="check"><input type="checkbox" id="scrim" checked> Include scrimmages</label>
     </div>
   </div>
+  <div id="notice"></div>
   <div id="body"></div>
 </main>
 <script src="/assets/admin.js"></script>
 <script src="/assets/trends.js"></script>
+<script src="/js/staff-stats.js"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const T = MPRTrends, pct = v => v==null ? '–' : (v*100).toFixed(1)+'%';
+const T = MPRTrends, S = StaffStats;
+const pct = v => v==null ? '–' : (v*100).toFixed(1)+'%';
+const pct0 = v => v==null ? '–' : Math.round(v*100)+'%';
 const pts = v => (v>0?'+':v<0?'−':'') + Math.abs(v*100).toFixed(1);
-const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
-const sd = a => { const m = avg(a); return Math.sqrt(avg(a.map(v => (v-m)**2))); };
-const MIN = 3; // games an umpire needs before they appear in a spotlight
-const seasonOf = d => { const [y,m] = d.split('-').map(Number); return m >= 8 ? `Fall ${y}` : `Spring ${y}`; };
-const seasonSort = s => { const [k,y] = s.split(' '); return +y*10 + (k === 'Fall' ? 5 : 1); };
+const avg = S.avg;
 let D = null, ME = null;
+const rosterLink = id => `${MPR.coord ? '/coord/umpires/' : '/admin/umpires/'}?u=${encodeURIComponent(id)}`;
+const canGoal = () => ME.role === 'master' || ME.tier === 'full';
 
-function rosterLink(id){ return `${MPR.coord ? '/coord/umpires/' : '/admin/umpires/'}?u=${encodeURIComponent(id)}`; }
-
+function allConfs(){ return ME.role === 'master' ? [...new Map(D.umpires.flatMap(u => u.tags).map(t => [t.toLowerCase(), t])).values()].sort((a,b)=>a.localeCompare(b)) : ME.conferences; }
+function view(){
+  const conf = $('conf').hidden ? '' : $('conf').value;
+  const confs = conf ? [conf] : (ME.role === 'master' ? null : ME.conferences);
+  return { season: $('season').value, scrim: $('scrim').checked, mode: $('mode').value || 'umpire', conf, confs };
+}
 function setup(){
-  const seasons = [...new Set(D.games.map(g => seasonOf(g.date)))].sort((a,b) => seasonSort(b)-seasonSort(a));
-  const count = s => D.games.filter(g => seasonOf(g.date) === s).length;
+  const seasons = [...new Set(D.games.map(g => S.seasonOf(g.date)))].sort((a,b) => S.seasonRank(b)-S.seasonRank(a));
+  const count = s => D.games.filter(g => S.seasonOf(g.date) === s).length;
   const def = seasons.find(s => count(s) >= 10) || seasons[0] || '';
   $('season').innerHTML = seasons.map(s => `<option value="${esc(s)}">${esc(s)} (${count(s)} games)</option>`).join('') + `<option value="all">All games (${D.games.length})</option>`;
   $('season').value = def || 'all';
-  const confs = ME.role === 'master' ? [...new Set(D.umpires.flatMap(u => u.tags))].sort() : ME.conferences;
+  const confs = allConfs();
   if (confs.length > 1) { $('conf').hidden = false; $('conf').innerHTML = `<option value="">${ME.role === 'master' ? 'All conferences' : 'All my conferences'}</option>` + confs.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join(''); }
-  ['season','conf','scrim'].forEach(id => $(id).addEventListener('change', draw));
+  ['season','conf','mode','scrim'].forEach(id => $(id).addEventListener('change', draw));
+}
+function modeOptions(v){
+  const label = v.conf || (ME.role === 'master' ? null : ME.conferences.join(' / '));
+  const anyConf = D.games.some(g => g.home_conf);
+  const cur = $('mode').value || 'umpire';
+  $('mode').innerHTML = `<option value="umpire">Every game these umpires worked</option>` +
+    `<option value="conference"${anyConf ? '' : ' disabled'}>${label ? `Only ${esc(label)} games` : 'Only each conference\'s own games'}${anyConf ? '' : ' (set team conferences first)'}</option>`;
+  $('mode').value = anyConf ? cur : 'umpire';
 }
 
 function draw(){
-  const season = $('season').value, conf = $('conf').hidden ? '' : $('conf').value, scrim = $('scrim').checked;
-  const ups = D.umpires.filter(u => !conf || u.tags.some(t => t.toLowerCase() === conf.toLowerCase()));
-  const byId = Object.fromEntries(ups.map(u => [u.id, u]));
-  const games = D.games.filter(g => byId[g.umpire_id] && (season === 'all' || seasonOf(g.date) === season) && (scrim || !T.isScrim(g)) && g.adj != null)
-    .map(g => ({...g, title: T.title(g), ump: byId[g.umpire_id]}));
-  const label = conf || (ME.role === 'master' ? 'All conferences' : ME.conferences.join(' · '));
+  let v = view(); modeOptions(v); v = view();
+  const sel = S.selectGames(D.games, D.umpires, v);
+  const games = sel.games.map(g => ({...g, title: T.title(g), ump: sel.byId[g.umpire_id]}));
+  const sum = S.summarize(games, sel.byId, { trackSince: D.trackSince });
+  const label = v.conf || (ME.role === 'master' ? 'All conferences' : ME.conferences.join(' · '));
   $('title').textContent = `${label} staff`;
-  $('sub').textContent = `${season === 'all' ? 'All games' : season} · ${games.length} game${games.length===1?'':'s'} · ${new Set(games.map(g=>g.umpire_id)).size} umpires · 2027 NSI static zone`;
-  if (!games.length) { $('body').innerHTML = `<div class="empty" style="margin-top:22px">No games for this selection yet.</div>`; return; }
+  $('sub').textContent = `${v.season === 'all' ? 'All games' : v.season} · ${games.length} game${games.length===1?'':'s'} · ${sum.umpires || 0} umpires · ${v.mode === 'conference' ? 'conference games only' : 'every game they worked'} · 2027 NSI static zone`;
+  const goalsHtml = goalsSection(v);
+  if (!games.length) { $('body').innerHTML = goalsHtml + `<div class="empty" style="margin-top:22px">No games for this selection yet.${v.mode === 'conference' ? ' Try "Every game these umpires worked", or check team conferences.' : ''}</div>`; bindGoals(); return; }
 
-  // per umpire, games in date order
-  const per = {};
-  games.forEach(g => (per[g.umpire_id] ||= []).push(g));
-  const rows = Object.entries(per).map(([id, gs]) => {
-    const adj = gs.map(g => g.adj), edge = gs.map(g => g.edge).filter(v => v != null), mis = gs.map(g => g.misses).filter(v => v != null);
-    const recentN = gs.length >= 6 ? 3 : 2, recent = avg(adj.slice(-recentN)), before = avg(adj.slice(0, -recentN));
-    return { id, u: byId[id], n: gs.length, adj: avg(adj), edge: avg(edge), mis: avg(mis), spread: sd(adj), recentN, recent, before,
-      last: gs[gs.length-1], prior: gs.length > 1 ? avg(adj.slice(0,-1)) : null };
-  });
-  const q = rows.filter(r => r.n >= MIN);
-
-  // headline numbers
-  const staff = avg(games.map(g => g.adj));
-  const lastDate = new Date(games[games.length-1].date + 'T12:00'), cut = new Date(lastDate - 27*86400000).toISOString().slice(0,10);
-  const late = games.filter(g => g.date >= cut), early = games.filter(g => g.date < cut);
-  const delta = late.length >= 3 && early.length >= 3 ? avg(late.map(g=>g.adj)) - avg(early.map(g=>g.adj)) : null;
-  const elite = games.filter(g => g.adj >= .95).length;
   const tiles = [
-    ['Staff adjusted accuracy', pct(staff), delta == null ? `Average of ${games.length} games` : Math.abs(delta) < .0025 ? 'Steady over the last 4 weeks of games' : `<span class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'} ${Math.abs(delta*100).toFixed(1)} pts</span> in the last 4 weeks of games`],
-    ['Games tracked', games.length, `${rows.length} umpires · ${q.length} with ${MIN}+ games`],
-    ['Missed calls per game', avg(games.map(g=>g.misses).filter(v=>v!=null))?.toFixed(1) ?? '–', `After the 1" buffer`],
-    ['Edge accuracy', pct(avg(games.map(g=>g.edge).filter(v=>v!=null))), 'Pitches within 2" of the edge'],
-    ['Games at 95%+', elite, `${Math.round(elite/games.length*100)}% of games`]
+    ['Staff adjusted accuracy', pct(sum.staffAdj), sum.delta4w == null ? `Average of ${games.length} games` : Math.abs(sum.delta4w) < .0025 ? 'Steady over the last 4 weeks of games' : `<span class="${sum.delta4w > 0 ? 'up' : 'down'}">${sum.delta4w > 0 ? '▲' : '▼'} ${Math.abs(sum.delta4w*100).toFixed(1)} pts</span> in the last 4 weeks of games`],
+    ['Games tracked', games.length, `${sum.umpires} umpires · ${sum.qualified} with ${S.MIN_GAMES}+ games`],
+    ['Missed calls per game', sum.misses?.toFixed(1) ?? '–', 'After the 1" buffer'],
+    ['Edge accuracy', pct(sum.edge), 'Pitches within 2" of the edge'],
+    ['2-strike accuracy', pct(sum.twoStrike), '2-strike and full counts']
   ];
 
-  const top = (list, key, dir, k = 5) => [...list].filter(r => r[key] != null).sort((a,b) => dir*(a[key]-b[key]) || a.u.name.localeCompare(b.u.name)).slice(0, k);
-  const improvers = q.filter(r => r.before != null && r.recent - r.before > 0.001).map(r => ({...r, gain: r.recent - r.before})).sort((a,b) => b.gain - a.gain).slice(0, 5);
-  const watch = rows.filter(r => r.prior != null && (r.last.adj - r.prior <= -0.03 || r.last.adj < 0.88)).map(r => ({...r, drop: r.last.adj - r.prior})).sort((a,b) => a.drop - b.drop).slice(0, 5);
-  const li = (r, val, note) => `<li><span><a href="${rosterLink(r.id)}">${esc(r.u.name)}</a><span class="n">${note}</span></span><span class="val">${val}</span></li>`;
-  const card = (title, why, items, extra = '') => `<div class="card ${extra}"><h3>${title}</h3><p class="why">${why}</p>${items.length ? `<ol>${items.join('')}</ol>` : `<p class="none">Nobody yet. Spotlights need umpires with ${MIN}+ games in this selection.</p>`}</div>`;
-  const cards = [
-    card('Biggest improvers', 'Latest games vs. their own earlier average', improvers.map(r => li(r, `<span class="up">${pts(r.gain)}</span>`, `Last ${r.recentN}: ${pct(r.recent)} · before: ${pct(r.before)} · ${r.n} games`))),
-    card('Top accuracy', `Average adjusted accuracy, ${MIN}+ games`, top(q, 'adj', -1).map(r => li(r, pct(r.adj), `${r.n} games`))),
-    card('Sharpest on the edges', `Edge accuracy, ${MIN}+ games`, top(q, 'edge', -1).map(r => li(r, pct(r.edge), `${r.n} games · adjusted ${pct(r.adj)}`))),
-    card('Most consistent', `Smallest game-to-game swing, ${MIN}+ games`, top(q, 'spread', 1).map(r => li(r, `±${(r.spread*100).toFixed(1)}`, `${r.n} games · average ${pct(r.adj)}`))),
-    card('Fewest missed calls', `Missed calls per game, ${MIN}+ games`, top(q, 'mis', 1).map(r => li(r, r.mis.toFixed(1), `${r.n} games`))),
-    card('Worth a check-in', 'Latest game under 88%, or 3+ points under their own average', watch.map(r => li(r, pct(r.last.adj), `${esc(T.fmtDate(r.last.date))} · ${r.drop <= -0.005 ? `${pts(r.drop)} vs. their average` : 'under 88%'} · ${r.n} games`)), 'watch')
-  ];
-
-  const recent = [...games].reverse().slice(0, 8).map(g => {
-    const rep = D.reports[g.id];
-    return `<div class="rg"><div class="t"><b>${esc(g.ump.name)}</b><span class="m">${esc(g.title)} · ${esc(T.fmtDate(g.date))} · ${g.misses ?? '–'} missed${rep ? ` · <a href="/r/${esc(rep)}" target="_blank" rel="noopener">Report</a>` : ''}</span></div><div class="acc">${pct(g.adj)}</div></div>`;
-  }).join('');
-  const noGames = ups.filter(u => u.active && !per[u.id]).length, portalOn = ups.filter(u => u.active && u.portal).length, active = ups.filter(u => u.active).length;
-
-  $('body').innerHTML = `
-    <section><h2>Headline numbers</h2><div class="tiles">${tiles.map(([k,v,d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('')}</div></section>
+  $('body').innerHTML = goalsHtml + `
+    <section><h2>Headline numbers</h2><div class="tiles">${tiles.map(([k,val,d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${val}</div><div class="d">${d}</div></div>`).join('')}</div></section>
+    ${ME.role === 'master' && !v.conf ? comparison(v) : ''}
     <section class="two">
-      <div class="panel"><div class="pt"><b>Staff accuracy by week</b><span>Average adjusted accuracy · dashed line: selection average</span></div>${weekChart(games, staff)}</div>
-      <div class="panel"><div class="pt"><b>How games are spread</b><span>Games by adjusted accuracy</span></div>${histogram(games, staff)}</div>
+      <div class="panel"><div class="pt"><b>Staff accuracy by week</b><span>Average adjusted accuracy · dashed line: selection average</span></div>${weekChart(games, sum.staffAdj)}</div>
+      <div class="panel"><div class="pt"><b>How games are spread</b><span>Games by adjusted accuracy</span></div>${histogram(games)}</div>
     </section>
-    <section><h2>Spotlights</h2><div class="cards">${cards.join('')}</div></section>
-    <section><h2>Latest games</h2><div class="recent">${recent}</div></section>
-    <p class="foot">${active} active umpires on this roster · ${noGames} without a game in this selection · ${portalOn} with umpire portal access. <a href="${MPR.coord ? '/coord/umpires/' : '/admin/umpires/'}">Open the roster</a> to sort everyone or see one umpire's trends.</p>`;
+    <section class="half">${missPanel(sum)}${situationPanel(sum)}</section>
+    <section class="half">${fairPanel(sum)}${engagementPanel(sum, sel.umpires)}</section>
+    <section><h2>Spotlights</h2><div class="cards">${spotlights(sum)}</div></section>
+    <section><h2>Latest games</h2><div class="recent">${recent(games)}</div></section>
+    <p class="foot">${footLine(sel, sum)}</p>`;
+  bindGoals();
+  document.querySelectorAll('[data-pick-conf]').forEach(b => b.addEventListener('click', () => { $('conf').value = b.dataset.pickConf; draw(); window.scrollTo({top:0, behavior:'smooth'}); }));
+}
+
+/* ---------- goals ---------- */
+let goalFormOpen = false;
+function goalsSection(v){
+  const inView = D.goals.filter(g => !v.confs || v.confs.some(c => c.toLowerCase() === g.conference.toLowerCase()));
+  if (!inView.length && !canGoal()) return '';
+  const cards = inView.map(g => {
+    const sel = S.selectGames(D.games, D.umpires, {...v, confs: [g.conference]});
+    const sum = S.summarize(sel.games, sel.byId);
+    const p = S.goalProgress(g, sum); if (!p) return '';
+    const fill = p.cur == null ? 0 : p.M.better === 'higher' ? Math.min(p.cur / p.target, 1) : Math.min(p.target / Math.max(p.cur, 0.01), 1);
+    const status = p.cur == null ? 'No games yet' : p.met ? '<span class="up">✓ Goal reached</span>' : p.M.unit === '%' ? `${(p.gap*100).toFixed(1)} pts to go` : `${p.gap.toFixed(1)} fewer per game to go`;
+    return `<div class="goal ${p.met ? 'met' : ''}">${canGoal() ? `<button type="button" class="x" data-del-goal="${esc(g.id)}" aria-label="Remove ${esc(g.conference)} ${esc(p.M.label)} goal">×</button>` : ''}
+      <div class="k">${esc(g.conference)} · ${esc(p.M.label)}</div>
+      <div class="v">${p.cur == null ? '–' : p.M.fmt(p.cur)} <small>goal ${p.M.fmt(p.target)}</small></div>
+      <div class="meter" role="img" aria-label="${Math.round(fill*100)}% of the way to the goal"><span style="width:${(fill*100).toFixed(0)}%"></span></div>
+      <div class="s">${status}</div></div>`;
+  }).join('');
+  const confs = (v.confs || allConfs());
+  const form = canGoal() ? `<form class="goalform" id="goalform" ${goalFormOpen ? '' : 'hidden'} novalidate>
+      <div><label for="g-conf">Conference</label><select id="g-conf">${confs.map(c => `<option>${esc(c)}</option>`).join('')}</select></div>
+      <div><label for="g-metric">Measure</label><select id="g-metric">${Object.entries(S.METRICS).map(([k,M]) => `<option value="${k}">${esc(M.label)} (${M.better})</option>`).join('')}</select></div>
+      <div><label for="g-target">Target</label><input type="number" id="g-target" step="0.1" min="0" placeholder="92.0"></div>
+      <button type="submit" class="primary">Save goal</button><button type="button" class="ghost" id="g-cancel">Cancel</button><div id="g-msg" style="flex-basis:100%"></div></form>` : '';
+  return `<section><h2>Staff goals${canGoal() ? `<button type="button" id="g-open">+ Set a goal</button>` : ''}</h2>
+    ${cards ? `<div class="goals">${cards}</div>` : `<p class="note" style="margin:0">No goals yet. Set a target for your staff, like 92% adjusted accuracy, and track it here and in the weekly email.</p>`}${form}
+    ${cards ? `<p class="note">Goals use the season and filters above.</p>` : ''}</section>`;
+}
+function bindGoals(){
+  const open = $('g-open'), f = $('goalform');
+  if (open) open.addEventListener('click', () => { goalFormOpen = true; f.hidden = false; $('g-target').focus(); });
+  if ($('g-cancel')) $('g-cancel').addEventListener('click', () => { goalFormOpen = false; f.hidden = true; });
+  if ($('g-metric')) $('g-metric').addEventListener('change', () => { $('g-target').placeholder = S.METRICS[$('g-metric').value].unit === '%' ? '92.0' : '12.0'; });
+  if (f) f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const body = { conference: $('g-conf').value, metric: $('g-metric').value, target: Number($('g-target').value) };
+    if (!$('g-target').value) { $('g-msg').innerHTML = '<div class="msg err">Enter a target.</div>'; return; }
+    const r = await fetch(MPR.base + '/goals', {method:'PUT', headers:{'content-type':'application/json'}, body: JSON.stringify(body)});
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok) { $('g-msg').innerHTML = `<div class="msg err">${esc(j.error || 'Could not save the goal.')}</div>`; return; }
+    goalFormOpen = false; await reload();
+  });
+  document.querySelectorAll('[data-del-goal]').forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    const r = await fetch(MPR.base + '/goals/' + b.dataset.delGoal, {method:'DELETE', headers:{'content-type':'application/json'}});
+    if (r.ok) reload(); else b.disabled = false;
+  }));
+}
+
+/* ---------- master: conference comparison ---------- */
+function comparison(v){
+  const rows = allConfs().map(c => {
+    const sel = S.selectGames(D.games, D.umpires, {...v, confs: [c]});
+    return { c, sum: S.summarize(sel.games, sel.byId), roster: sel.umpires.filter(u => u.active).length, goals: D.goals.filter(g => g.conference.toLowerCase() === c.toLowerCase()) };
+  }).filter(r => r.sum.n || r.roster).sort((a,b) => (b.sum.n||0) - (a.sum.n||0));
+  if (rows.length < 2) return '';
+  const best = Math.max(...rows.map(r => r.sum.staffAdj || 0));
+  const goalCell = r => { if (!r.goals.length) return '<span style="color:var(--muted)">–</span>'; const ps = r.goals.map(g => S.goalProgress(g, r.sum)).filter(p => p && p.cur != null); const met = ps.filter(p => p.met).length; return `${met} of ${r.goals.length} met`; };
+  return `<section><h2>Conference comparison</h2><div class="tw"><table>
+    <thead><tr><th>Conference</th><th class="r">Umpires</th><th class="r">Games</th><th class="r">Adjusted</th><th class="r">Last 4 weeks</th><th class="r">Missed / game</th><th class="r">Edge</th><th class="r">2-strike</th><th>Goals</th></tr></thead>
+    <tbody>${rows.map(r => `<tr><td><button type="button" class="lnk" data-pick-conf="${esc(r.c)}">${esc(r.c)}</button></td>
+      <td class="r">${r.sum.umpires || 0} <span style="color:var(--muted)">of ${r.roster}</span></td><td class="r">${r.sum.n || 0}</td>
+      <td class="r"><b>${pct(r.sum.staffAdj)}</b>${r.sum.staffAdj === best && r.sum.n ? ' ▲' : ''}</td>
+      <td class="r">${r.sum.delta4w == null ? '–' : `<span class="${r.sum.delta4w >= 0 ? 'up' : 'down'}">${pts(r.sum.delta4w)}</span>`}</td>
+      <td class="r">${r.sum.misses?.toFixed(1) ?? '–'}</td><td class="r">${pct(r.sum.edge)}</td><td class="r">${pct(r.sum.twoStrike)}</td><td>${goalCell(r)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="note">Umpires: how many worked games in this selection, of everyone on that conference's roster. ▲ marks the highest adjusted accuracy. Pick a conference to open its full view.</p></section>`;
+}
+
+/* ---------- where the misses happen ---------- */
+function missPanel(sum){
+  const M = sum.missMap;
+  if (!M) return `<div class="panel"><div class="pt"><b>Where the misses happen</b></div><p class="note">Detail stats are still being prepared for these games.</p></div>`;
+  const top = [...M.regions].sort((a,b) => b.share - a.share)[0];
+  const kind = top.scb >= top.bcs ? 'strikes called balls' : 'balls called strikes';
+  const mx = Math.max(...M.regions.map(r => r.miss), 1);
+  return `<div class="panel"><div class="pt"><b>Where the misses happen</b><span>${M.total} missed calls in ${sum.statsGames} games · inside/outside are relative to the batter</span></div>
+    <p class="lead">Most misses come at the <b>${esc(top.label.toLowerCase())}</b> (${pct0(top.share)}), mostly ${kind}.</p>
+    <div class="legend"><span><i style="background:var(--c-scb)"></i>Strikes called balls · ${M.scb} (${pct0(M.scb/(M.total||1))})</span><span><i style="background:var(--c-bcs)"></i>Balls called strikes · ${M.bcs} (${pct0(M.bcs/(M.total||1))})</span></div>
+    <div class="rows">${M.regions.map(r => `<div class="row" title="${esc(`${r.label}: ${r.miss} misses (${r.scb} strikes called balls, ${r.bcs} balls called strikes) · ${pct(r.acc)} of ${r.n} calls right`)}">
+      <div class="lab">${esc(r.label)}<small>${pct(r.acc)} of ${r.n} calls right</small></div>
+      <div class="stack" style="width:${(r.miss/mx*100).toFixed(1)}%">${r.scb ? `<span style="flex:${r.scb};background:var(--c-scb)"></span>` : ''}${r.bcs ? `<span style="flex:${r.bcs};background:var(--c-bcs)"></span>` : ''}</div>
+      <div class="val">${pct0(r.share)}<small>${r.perGame.toFixed(1)} / game</small></div></div>`).join('')}</div></div>`;
+}
+
+/* ---------- situations (counts) ---------- */
+function situationPanel(sum){
+  if (!sum.situations) return `<div class="panel"><div class="pt"><b>Accuracy by count</b></div><p class="note">Detail stats are still being prepared for these games.</p></div>`;
+  const rows = sum.situations.filter(s => s.n);
+  const overall = sum.missMap.pitchAcc;
+  const lo = Math.max(0, Math.floor((Math.min(...rows.map(s => s.acc), overall) - .02) * 50) / 50), hi = 1;
+  const x = v => ((v - lo) / (hi - lo) * 100).toFixed(1);
+  const worst = [...rows].filter(s => s.n >= 30).sort((a,b) => a.acc - b.acc)[0];
+  return `<div class="panel"><div class="pt"><b>Accuracy by count</b><span>Every called pitch · line: all counts (${pct(overall)})</span></div>
+    ${worst ? `<p class="lead">Toughest spot: <b>${esc(worst.label.toLowerCase())}</b> at ${pct(worst.acc)}, ${((overall - worst.acc)*100).toFixed(1)} pts below the staff's overall rate.</p>` : ''}
+    <div class="rows">${rows.map(s => `<div class="row" title="${esc(`${s.label}: ${pct(s.acc)} of ${s.n} calls right · ${s.scb} strikes called balls, ${s.bcs} balls called strikes`)}">
+      <div class="lab">${esc(s.label)}<small>${s.n} calls</small></div>
+      <div class="track" aria-hidden="true"><span style="position:absolute;left:0;right:0;top:6px;height:2px;background:var(--line);border-radius:2px"></span>
+        <span style="position:absolute;left:${x(overall)}%;top:0;bottom:0;width:0;border-left:2px dashed var(--muted)"></span>
+        <span style="position:absolute;left:calc(${x(s.acc)}% - 6px);top:1px;width:12px;height:12px;border-radius:50%;background:var(--deep);box-shadow:0 0 0 2px var(--surface)"></span></div>
+      <div class="val"><b>${pct(s.acc)}</b></div></div>`).join('')}</div>
+    <p class="note">Scale ${Math.round(lo*100)}–100%. "Pitcher ahead" means more strikes than balls; "hitter ahead" means more balls than strikes.</p></div>`;
+}
+
+/* ---------- home vs. visitor ---------- */
+function fairPanel(sum){
+  const F = sum.fair;
+  if (!F || !F.games) return `<div class="panel"><div class="pt"><b>Home vs. visitor</b></div><p class="note">${F ? 'No games with two different teams in this selection.' : 'Detail stats are still being prepared for these games.'}</p></div>`;
+  const tot = F.favorHome + F.favorAway, h = tot ? F.favorHome / tot : .5;
+  const lean = Math.abs(h - .5) < .03 ? 'Missed calls are split almost evenly' : h > .5 ? `Missed calls lean slightly toward the <b>home team</b>` : `Missed calls lean slightly toward the <b>visitors</b>`;
+  return `<div class="panel"><div class="pt"><b>Home vs. visitor</b><span>${F.games} games · intrasquads left out</span></div>
+    <p class="lead">${lean}: ${pct0(h)} helped the home team, ${pct0(1-h)} helped the visitors.</p>
+    <div class="split" role="img" aria-label="${pct0(h)} of missed calls favored the home team">
+      <span style="flex:${F.favorHome || 0.0001};background:var(--c-scb)">${pct0(h)}</span><span style="flex:${F.favorAway || 0.0001};background:var(--c-bcs)">${pct0(1-h)}</span></div>
+    <div class="legend"><span><i style="background:var(--c-scb)"></i>Favored home (${F.favorHome})</span><span><i style="background:var(--c-bcs)"></i>Favored visitors (${F.favorAway})</span></div>
+    <div class="kv"><div><b>${pct(F.homeAcc)}</b><span>Accuracy, home pitchers</span></div><div><b>${pct(F.awayAcc)}</b><span>Accuracy, visiting pitchers</span></div></div>
+    ${F.lopsided.length ? `<div class="note" style="margin-top:4px">Most one-sided this selection (${S.MIN_GAMES}+ games):</div><ul class="list">${F.lopsided.map(r => `<li><a href="${rosterLink(r.id)}">${esc(r.u.name)}</a><span class="m">${pct0(r.share > .5 ? r.share : 1 - r.share)} of misses helped ${r.share > .5 ? 'home' : 'visitors'} · ${r.favorHome + r.favorAway} misses</span></li>`).join('')}</ul>` : ''}
+    <p class="note">A miss helps the home team when it's a ball called a strike for a home pitcher, or a strike called a ball against a visiting pitcher.</p></div>`;
+}
+
+/* ---------- report engagement ---------- */
+function engagementPanel(sum, ups){
+  const E = sum.engagement, since = D.trackSince ? T.fmtDate(D.trackSince.slice(0,10)) : null;
+  const active = ups.filter(u => u.active), portal = active.filter(u => u.portal), recentLogin = active.filter(u => u.last_login && Date.now() - Date.parse(u.last_login) < 30*86400000);
+  const body = E ? `<div style="display:flex;align-items:baseline;gap:10px"><span class="big">${pct0(E.share)}</span><span>of emailed reports opened <span style="color:var(--muted)">(${E.opened} of ${E.sent})</span></span></div>
+      ${E.unopened.length ? `<div class="note">Not opened yet, emailed 2+ days ago:</div><ul class="list">${E.unopened.map(g => `<li><a href="${rosterLink(g.umpire_id)}">${esc(g.ump.name)}</a><span class="m">${esc(T.fmtDate(g.date))} · emailed ${esc(T.fmtDate(g.report.emailed_at.slice(0,10)))}</span></li>`).join('')}</ul>` : `<p class="note">Every report emailed more than 2 days ago has been opened.</p>`}`
+    : `<p class="lead">No reports emailed in this selection since tracking started${since ? ` on ${esc(since)}` : ''}. Opens will show here as new reports go out.</p>`;
+  return `<div class="panel"><div class="pt"><b>Report engagement</b><span>${since ? `Tracking since ${esc(since)}` : ''}</span></div>${body}
+    <div class="kv"><div><b>${portal.length}</b><span>of ${active.length} umpires have portal access</span></div><div><b>${recentLogin.length}</b><span>signed in to the portal in the last 30 days</span></div></div>
+    <p class="note">An open counts when the umpire loads the interactive report. Staff checking a link don't count.</p></div>`;
+}
+
+/* ---------- spotlights ---------- */
+function spotlights(sum){
+  const P = sum.spot;
+  const li = (r, val, note) => `<li><span><a href="${rosterLink(r.id)}">${esc(r.u.name)}</a><span class="n">${note}</span></span><span class="val">${val}</span></li>`;
+  const unranked = P.unranked.slice(0, 4);
+  const unrLine = unranked.length ? `<p class="unr">Not ranked yet (under ${S.MIN_GAMES} games): ${unranked.map(r => `<a href="${rosterLink(r.id)}">${esc(r.u.name)}</a> ${pct(r.adj)} (${r.n})`).join(' · ')}${P.unranked.length > 4 ? ` · ${P.unranked.length - 4} more` : ''}</p>` : '';
+  const card = (title, why, items, extra = '', after = '') => `<div class="card ${extra}"><h3>${title}</h3><p class="why">${why}</p>${items.length ? `<ol>${items.join('')}</ol>` : `<p class="none">Nobody yet. Rankings need umpires with ${S.MIN_GAMES}+ games in this selection.</p>`}${after}</div>`;
+  return [
+    card('Biggest improvers', 'Latest games vs. their own earlier average', P.improvers.map(r => li(r, `<span class="up">${pts(r.gain)}</span>`, `Last ${r.recentN}: ${pct(r.recent)} · before: ${pct(r.before)} · ${r.n} games`))),
+    card('Top accuracy', `Average adjusted accuracy, ${S.MIN_GAMES}+ games`, P.top.map(r => li(r, pct(r.adj), `${r.n} games`)), '', unrLine),
+    card('Sharpest on the edges', `Edge accuracy, ${S.MIN_GAMES}+ games`, P.edges.map(r => li(r, pct(r.edge), `${r.n} games · adjusted ${pct(r.adj)}`))),
+    card('Most consistent', `Smallest game-to-game swing, ${S.MIN_GAMES}+ games`, P.consistent.map(r => li(r, `±${(r.spread*100).toFixed(1)}`, `${r.n} games · average ${pct(r.adj)}`))),
+    card('Fewest missed calls', `Missed calls per game, ${S.MIN_GAMES}+ games`, P.fewest.map(r => li(r, r.mis.toFixed(1), `${r.n} games`))),
+    card('Worth a check-in', 'Latest game under 88%, or 3+ points under their own average', P.watch.map(r => li(r, pct(r.last.adj), `${esc(T.fmtDate(r.last.date))} · ${r.drop <= -0.005 ? `${pts(r.drop)} vs. their average` : 'under 88%'} · ${r.n} games`)), 'watch')
+  ].join('');
+}
+
+function recent(games){
+  return [...games].reverse().slice(0, 8).map(g => {
+    const rep = g.report;
+    return `<div class="rg"><div class="t"><b>${esc(g.ump.name)}</b><span class="m">${esc(g.title)} · ${esc(T.fmtDate(g.date))} · ${g.misses ?? '–'} missed${rep ? ` · <a href="/r/${esc(rep.id)}" target="_blank" rel="noopener">Report</a>${rep.first_opened_at ? ' · opened' : ''}` : ''}</span></div><div class="acc">${pct(g.adj)}</div></div>`;
+  }).join('');
+}
+function footLine(sel, sum){
+  const per = new Set(sel.games.map(g => g.umpire_id));
+  const active = sel.umpires.filter(u => u.active), none = active.filter(u => !per.has(u.id)).length;
+  return `${active.length} active umpires on this roster · ${none} without a game in this selection. <a href="${MPR.coord ? '/coord/umpires/' : '/admin/umpires/'}">Open the roster</a> to sort everyone or see one umpire's trends.`;
 }
 
 function weekChart(games, mean){
   const wk = {};
   games.forEach(g => { const d = new Date(g.date + 'T12:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const k = d.toISOString().slice(0,10); (wk[k] ||= []).push(g); });
   const weeks = Object.keys(wk).sort().map(k => ({ k, n: wk[k].length, v: avg(wk[k].map(g => g.adj)) }));
-  const W = 720, H = 240, L = 42, R = 12, Tp = 14, B = 26;
+  const W = 720, H = 240, L = 42, R = 12, Tp = 16, B = 26;
   const vals = weeks.map(w => w.v).concat(mean); let lo = Math.min(...vals) - .01, hi = Math.max(...vals) + .01;
   if (hi - lo < .04) { const m = (hi+lo)/2; lo = m - .02; hi = m + .02; }
   const n = weeks.length, x = i => L + (n === 1 ? (W-L-R)/2 : i*(W-L-R)/(n-1)), y = v => Tp + (hi - v)*(H-Tp-B)/(hi-lo);
   let s = '';
-  for (let k = 0; k <= 4; k++){ const v = lo + (hi-lo)*k/4, yy = y(v).toFixed(1); s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${(+yy+4).toFixed(1)}" text-anchor="end">${(v*100).toFixed(0)}%</text>`; }
+  for (let k = 0; k <= 4; k++){ const val = lo + (hi-lo)*k/4, yy = y(val).toFixed(1); s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${(+yy+4).toFixed(1)}" text-anchor="end">${(val*100).toFixed(0)}%</text>`; }
   s += `<line x1="${L}" x2="${W-R}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="var(--muted)" stroke-dasharray="4 4"/>`;
   let lastM = ''; weeks.forEach((w,i) => { const mo = new Date(w.k+'T12:00').toLocaleDateString('en-US',{month:'short'}); if (mo !== lastM){ lastM = mo; s += `<text x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle">${mo}</text>`; } });
   if (n > 1) s += `<path d="${weeks.map((w,i) => `${i?'L':'M'}${x(i).toFixed(1)},${y(w.v).toFixed(1)}`).join('')}" fill="none" stroke="var(--deep)" stroke-width="2" stroke-linejoin="round"/>`;
@@ -204,32 +401,50 @@ function weekChart(games, mean){
   s += `<text x="${x(bi).toFixed(1)}" y="${(y(best.v)-10).toFixed(1)}" text-anchor="middle" style="fill:var(--ink);font-weight:600">${pct(best.v)}</text>`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Staff average adjusted accuracy by week, ${n} weeks">${s}</svg>`;
 }
-
-function histogram(games, mean){
+function histogram(games){
   const edges = [0, .86, .88, .90, .92, .94, .96, .98, 1.0001];
   const labels = ['<86', '86', '88', '90', '92', '94', '96', '98+'];
   const bins = labels.map((l,i) => games.filter(g => g.adj >= edges[i] && g.adj < edges[i+1]).length);
-  const W = 420, H = 240, L = 30, R = 8, Tp = 14, B = 26, mx = Math.max(...bins, 1);
-  const bw = (W-L-R)/bins.length, y = v => Tp + (mx - v)*(H-Tp-B)/mx;
+  const W = 420, H = 240, L = 30, R = 8, Tp = 16, B = 26, mx = Math.max(...bins, 1);
+  const bw = (W-L-R)/bins.length, y = val => Tp + (mx - val)*(H-Tp-B)/mx;
   let s = '';
-  for (let k = 0; k <= 3; k++){ const v = Math.round(mx*k/3), yy = y(v).toFixed(1); s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${(+yy+4).toFixed(1)}" text-anchor="end">${v}</text>`; }
+  for (let k = 0; k <= 3; k++){ const val = Math.round(mx*k/3), yy = y(val).toFixed(1); s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${(+yy+4).toFixed(1)}" text-anchor="end">${val}</text>`; }
   bins.forEach((c,i) => {
-    const x0 = L + i*bw + 2, w = bw - 4, top = y(c), h = H - B - top;
+    const x0 = L + i*bw + 2, w = bw - 4, top = y(c);
     const tip = `${labels[i] === '<86' ? 'Under 86%' : labels[i] === '98+' ? '98% and up' : `${labels[i]}–${+labels[i]+2}%`}: ${c} game${c===1?'':'s'}`;
-    s += `<g class="bar"><title>${esc(tip)}</title><rect class="hit" x="${x0}" y="${Tp}" width="${w}" height="${H-Tp-B}"/>${c ? `<path class="b" d="M${x0},${H-B} V${(top+4).toFixed(1)} q0,-4 4,-4 h${(w-8).toFixed(1)} q4,0 4,4 V${H-B} Z" fill="var(--deep)"/>` : ''}${c ? `<text x="${(x0+w/2).toFixed(1)}" y="${(top-5).toFixed(1)}" text-anchor="middle" style="fill:var(--ink);font-weight:600">${c}</text>` : ''}</g>`;
+    s += `<g class="bar"><title>${esc(tip)}</title><rect class="hit" x="${x0}" y="${Tp}" width="${w}" height="${H-Tp-B}"/>${c ? `<path class="b" d="M${x0},${H-B} V${(top+4).toFixed(1)} q0,-4 4,-4 h${(w-8).toFixed(1)} q4,0 4,4 V${H-B} Z" fill="var(--deep)"/><text x="${(x0+w/2).toFixed(1)}" y="${(top-5).toFixed(1)}" text-anchor="middle" style="fill:var(--ink);font-weight:600">${c}</text>` : ''}</g>`;
     s += `<text x="${(x0+w/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${labels[i]}</text>`;
   });
   s += `<line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="var(--muted)"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Number of games in each adjusted accuracy range">${s}</svg>`;
 }
 
+async function fetchData(){
+  const r = await fetch(MPR.base + '/dashboard', {headers:{accept:'application/json'}});
+  if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || `The server returned ${r.status}.`);
+  return r.json();
+}
+async function reload(){ D = await fetchData(); draw(); }
+// Fill in detail stats for games saved before they existed, a few at a time.
+async function backfill(){
+  if (!D.statsMissing) return;
+  const total = D.statsMissing;
+  $('notice').innerHTML = `<div class="msg warn" style="margin-top:14px">Preparing miss locations and count stats for ${total} earlier games… <span id="bf">0</span>%</div>`;
+  let left = total;
+  while (left > 0) {
+    const r = await fetch(MPR.base + '/games/backfill', {method:'POST', headers:{'content-type':'application/json'}, body:'{}'});
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok || !j.done) break;
+    left = j.remaining; const el = $('bf'); if (el) el.textContent = Math.round((total-left)/total*100);
+  }
+  $('notice').innerHTML = left > 0 ? `<div class="msg err" style="margin-top:14px">Some games couldn't be prepared. Refresh to try again.</div>` : '';
+  await reload();
+}
+
 MPR.ready.then(async me => {
   ME = me;
-  try {
-    const r = await fetch(MPR.base + '/dashboard', {headers:{accept:'application/json'}});
-    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || `The server returned ${r.status}.`);
-    D = await r.json(); setup(); draw();
-  } catch(e) { $('sub').textContent = e.message; }
+  try { D = await fetchData(); setup(); draw(); backfill(); }
+  catch(e) { $('sub').textContent = e.message; }
 });
 })();
 </script>
