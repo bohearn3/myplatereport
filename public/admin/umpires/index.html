@@ -194,7 +194,12 @@ async function api(path, opts={}){
   return j;
 }
 async function load(){
-  try { list = (await api(MPR.base + '/umpires')).umpires; fillTags(); draw(); }
+  try {
+    list = (await api(MPR.base + '/umpires')).umpires; fillTags(); draw();
+    // ?u=<id> (from the dashboard) opens that umpire's card once.
+    const u = new URLSearchParams(location.search).get('u');
+    if (u && !selected && list.some(x => x.id === u)) { open(u); history.replaceState(null, '', location.pathname); }
+  }
   catch(e){ $('count').textContent = e.message; }
 }
 function allTags(){ const m = new Map(); list.forEach(u => (u.tags||[]).forEach(t => { const k = t.toLowerCase(); if (!m.has(k)) m.set(k, t); })); return [...m.values()].sort((a,b)=>a.localeCompare(b)); }

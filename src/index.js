@@ -365,6 +365,20 @@ async function getUmpire(id, env, a) {
   const { phone, notes, active, created_at, name, email, portal, last_login } = u;
   return json({ umpire: { id, name, email, phone, notes, active, created_at, portal: portal ? 1 : 0, last_login: last_login || null, tags: parseTags(u.tags) }, games, reports });
 }
+// Dashboard: one compact row per game for every umpire in scope; the page does the math.
+async function dashboard(env, a) {
+  const ups = (await env.DB.prepare('SELECT id, name, tags, active, portal FROM umpires ORDER BY name COLLATE NOCASE').all()).results
+    .map(u => ({ id: u.id, name: u.name, tags: parseTags(u.tags), active: u.active, portal: u.portal ? 1 : 0 })).filter(u => inScope(a, u.tags));
+  const ids = new Set(ups.map(u => u.id));
+  const games = (await env.DB.prepare(`SELECT g.id, g.umpire_id, g.date, g.home, g.away, g.level, g.adj, g.raw, g.misses, g.edge, g.decisions,
+      th.full_name AS home_name, ta.full_name AS away_name
+    FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away ORDER BY g.date, g.created_at`).all()).results.filter(g => ids.has(g.umpire_id));
+  const reports = {};
+  for (const r of (await env.DB.prepare('SELECT id, game_id FROM reports WHERE revoked_at IS NULL ORDER BY created_at DESC').all()).results)
+    if (!reports[r.game_id]) reports[r.game_id] = r.id;
+  const live = {}; for (const g of games) if (reports[g.id]) live[g.id] = reports[g.id];
+  return json({ umpires: ups, games, reports: live });
+}
 function cleanUmpire(o) {
   return {
     name: String(o.name || '').replace(/\s+/g, ' ').trim().slice(0, 120),
@@ -502,6 +516,7 @@ async function api(request, env, a, sub) {
   if (sub === '/teams' && m === 'GET') return json({ teams: (await db.prepare('SELECT code, short_name, full_name FROM teams').all()).results });
   if (sub === '/reports' && m === 'POST') return saveReport(request, env, a, body || {});
   if (sub === '/umpires' && m === 'GET') return listUmpires(env, a);
+  if (sub === '/dashboard' && m === 'GET') return dashboard(env, a);
   if (sub === '/umpires' && m === 'POST') {
     need(a, 'full');
     const r = await upsertUmpire(env, a, body || {});
@@ -653,7 +668,8 @@ export default {
     if (p.startsWith('/r/')) return env.ASSETS.fetch(new Request(new URL('/report', url), request));
 
     // Coordinator pages reuse the admin page files; each page asks /coord/api/me what this person may do.
-    if (p === '/coord' || p === '/coord/' || p === '/coord/umpires' || p === '/coord/umpires/') return env.ASSETS.fetch(new Request(new URL('/admin/umpires/', url), request));
+    if (p === '/coord' || p === '/coord/') return env.ASSETS.fetch(new Request(new URL('/admin/dashboard/', url), request));
+    if (p === '/coord/umpires' || p === '/coord/umpires/') return env.ASSETS.fetch(new Request(new URL('/admin/umpires/', url), request));
     if (p === '/coord/send' || p === '/coord/send/') return env.ASSETS.fetch(new Request(new URL('/admin/', url), request));
     if (p === '/coord/login' || p === '/coord/login/') return env.ASSETS.fetch(new Request(new URL('/coord-login', url), request));
     if (p === '/portal' || p === '/portal/') return env.ASSETS.fetch(new Request(new URL('/portal-home', url), request));

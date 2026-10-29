@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Dashboard · MyPlateReport</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/img/favicon-64.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/admin.css">
+<style>
+/* Layout: filters row, headline tiles, staff trend + distribution side by side, spotlight cards (3 across), recent games. */
+html,body{height:auto;min-height:100%}
+main{width:100%;max-width:1200px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,4vw,2.4rem);text-transform:uppercase;margin:2px 0 2px;line-height:1}
+.sub{color:var(--muted);margin:0;font-size:.9rem}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filters select{width:auto;min-width:150px}
+.filters .check{display:flex;gap:6px;align-items:center;font-size:.88rem;margin:0;color:var(--ink);font-weight:500}
+h2{font-size:.76rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+section{margin-top:22px}
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.tile .k{font-size:.76rem;color:var(--muted);font-weight:600}
+.tile .v{font-family:var(--f-display);font-weight:800;font-size:2rem;line-height:1.05;margin-top:2px}
+.tile .d{font-size:.78rem;color:var(--muted)}
+.up{color:var(--good);font-weight:700} .down{color:var(--warn);font-weight:700}
+.two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 14px 10px;min-width:0}
+.panel .pt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.panel .pt b{font-size:.92rem}
+.panel .pt span{font-size:.76rem;color:var(--muted)}
+.panel svg{display:block;width:100%;height:auto;overflow:visible}
+.panel svg text{font-family:var(--f-body);fill:var(--muted);font-size:11px}
+.panel svg .hit{fill:transparent;cursor:default}
+.panel svg .hit:hover + .dot,.panel svg g.pt-g:hover .dot{r:6}
+.panel svg g.bar:hover rect.b{fill:var(--powder)}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;display:flex;flex-direction:column}
+.card h3{margin:0;font-size:1rem}
+.card .why{margin:2px 0 10px;font-size:.78rem;color:var(--muted)}
+.card ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.card li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.card li:first-child{border-top:0}
+.card li a{color:var(--ink);font-weight:600;text-decoration:none;overflow-wrap:anywhere}
+.card li a:hover{color:var(--deep);text-decoration:underline}
+.card li .n{display:block;font-size:.76rem;color:var(--muted);font-weight:400}
+.card li .val{font-family:var(--f-display);font-weight:800;font-size:1.35rem;white-space:nowrap;text-align:right}
+.card .none{color:var(--muted);font-size:.85rem;margin:6px 0 0}
+.card.watch{border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.card.watch h3::before{content:"!";display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--warn);color:#fff;font-size:.74rem;margin-right:7px;vertical-align:1px}
+.recent{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rg{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-width:0}
+.rg .t{min-width:0}
+.rg b{display:block;font-size:.9rem}
+.rg .m{font-size:.8rem;color:var(--muted)}
+.rg .m a{color:var(--deep);font-weight:600}
+.rg .acc{font-family:var(--f-display);font-weight:800;font-size:1.4rem;white-space:nowrap}
+.foot{color:var(--muted);font-size:.82rem;margin-top:22px}
+.foot a{color:var(--deep);font-weight:600}
+.empty{color:var(--muted);text-align:center;padding:50px 10px;border:1px dashed var(--line);border-radius:12px;background:var(--surface)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:1000px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.two{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.cards,.recent{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="band">
+  <img class="logo" src="/img/myplatereport-logo-dark.png" alt="MyPlateReport" width="1200" height="398">
+  <nav id="nav"></nav>
+</header>
+<main>
+  <div class="head">
+    <div>
+      <div class="eyebrow">Staff dashboard</div>
+      <h1 id="title">Your staff</h1>
+      <p class="sub" id="sub">Loading…</p>
+    </div>
+    <div class="filters">
+      <label class="sr" for="season">Season</label><select id="season"></select>
+      <label class="sr" for="conf">Conference</label><select id="conf" hidden></select>
+      <label class="check"><input type="checkbox" id="scrim" checked> Include scrimmages</label>
+    </div>
+  </div>
+  <div id="body"></div>
+</main>
+<script src="/assets/admin.js"></script>
+<script src="/assets/trends.js"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const T = MPRTrends, pct = v => v==null ? '–' : (v*100).toFixed(1)+'%';
+const pts = v => (v>0?'+':v<0?'−':'') + Math.abs(v*100).toFixed(1);
+const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+const sd = a => { const m = avg(a); return Math.sqrt(avg(a.map(v => (v-m)**2))); };
+const MIN = 3; // games an umpire needs before they appear in a spotlight
+const seasonOf = d => { const [y,m] = d.split('-').map(Number); return m >= 8 ? `Fall ${y}` : `Spring ${y}`; };
+const seasonSort = s => { const [k,y] = s.split(' '); return +y*10 + (k === 'Fall' ? 5 : 1); };
+let D = null, ME = null;
+
+function rosterLink(id){ return `${MPR.coord ? '/coord/umpires/' : '/admin/umpires/'}?u=${encodeURIComponent(id)}`; }
+
+function setup(){
+  const seasons = [...new Set(D.games.map(g => seasonOf(g.date)))].sort((a,b) => seasonSort(b)-seasonSort(a));
+  const count = s => D.games.filter(g => seasonOf(g.date) === s).length;
+  const def = seasons.find(s => count(s) >= 10) || seasons[0] || '';
+  $('season').innerHTML = seasons.map(s => `<option value="${esc(s)}">${esc(s)} (${count(s)} games)</option>`).join('') + `<option value="all">All games (${D.games.length})</option>`;
+  $('season').value = def || 'all';
+  const confs = ME.role === 'master' ? [...new Set(D.umpires.flatMap(u => u.tags))].sort() : ME.conferences;
+  if (confs.length > 1) { $('conf').hidden = false; $('conf').innerHTML = `<option value="">${ME.role === 'master' ? 'All conferences' : 'All my conferences'}</option>` + confs.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join(''); }
+  ['season','conf','scrim'].forEach(id => $(id).addEventListener('change', draw));
+}
+
+function draw(){
+  const season = $('season').value, conf = $('conf').hidden ? '' : $('conf').value, scrim = $('scrim').checked;
+  const ups = D.umpires.filter(u => !conf || u.tags.some(t => t.toLowerCase() === conf.toLowerCase()));
+  const byId = Object.fromEntries(ups.map(u => [u.id, u]));
+  const games = D.games.filter(g => byId[g.umpire_id] && (season === 'all' || seasonOf(g.date) === season) && (scrim || !T.isScrim(g)) && g.adj != null)
+    .map(g => ({...g, title: T.title(g), ump: byId[g.umpire_id]}));
+  const label = conf || (ME.role === 'master' ? 'All conferences' : ME.conferences.join(' · '));
+  $('title').textContent = `${label} staff`;
+  $('sub').textContent = `${season === 'all' ? 'All games' : season} · ${games.length} game${games.length===1?'':'s'} · ${new Set(games.map(g=>g.umpire_id)).size} umpires · 2027 NSI static zone`;
+  if (!games.length) { $('body').innerHTML = `<div class="empty" style="margin-top:22px">No games for this selection yet.</div>`; return; }
+
+  // per umpire, games in date order
+  const per = {};
+  games.forEach(g => (per[g.umpire_id] ||= []).push(g));
+  const rows = Object.entries(per).map(([id, gs]) => {
+    const adj = gs.map(g => g.adj), edge = gs.map(g => g.edge).filter(v => v != null), mis = gs.map(g => g.misses).filter(v => v != null);
+    const recentN = gs.length >= 6 ? 3 : 2, recent = avg(adj.slice(-recentN)), before = avg(adj.slice(0, -recentN));
+    return { id, u: byId[id], n: gs.length, adj: avg(adj), edge: avg(edge), mis: avg(mis), spread: sd(adj), recentN, recent, before,
+      last: gs[gs.length-1], prior: gs.length > 1 ? avg(adj.slice(0,-1)) : null };
+  });
+  const q = rows.filter(r => r.n >= MIN);
+
+  // headline numbers
+  const staff = avg(games.map(g => g.adj));
+  const lastDate = new Date(games[games.length-1].date + 'T12:00'), cut = new Date(lastDate - 27*86400000).toISOString().slice(0,10);
+  const late = games.filter(g => g.date >= cut), early = games.filter(g => g.date < cut);
+  const delta = late.length >= 3 && early.length >= 3 ? avg(late.map(g=>g.adj)) - avg(early.map(g=>g.adj)) : null;
+  const elite = games.filter(g => g.adj >= .95).length;
+  const tiles = [
+    ['Staff adjusted accuracy', pct(staff), delta == null ? `Average of ${games.length} games` : Math.abs(delta) < .0025 ? 'Steady over the last 4 weeks of games' : `<span class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '▲' : '▼'} ${Math.abs(delta*100).toFixed(1)} pts</span> in the last 4 weeks of games`],
+    ['Games tracked', games.length, `${rows.length} umpires · ${q.length} with ${MIN}+ games`],
+    ['Missed calls per game', avg(games.map(g=>g.misses).filter(v=>v!=null))?.toFixed(1) ?? '–', `After the 1" buffer`],
+    ['Edge accuracy', pct(avg(games.map(g=>g.edge).filter(v=>v!=null))), 'Pitches within 2" of the edge'],
+    ['Games at 95%+', elite, `${Math.round(elite/games.length*100)}% of games`]
+  ];
+
+  const top = (list, key, dir, k = 5) => [...list].filter(r => r[key] != null).sort((a,b) => dir*(a[key]-b[key]) || a.u.name.localeCompare(b.u.name)).slice(0, k);
+  const improvers = q.filter(r => r.before != null && r.recent - r.before > 0.001).map(r => ({...r, gain: r.recent - r.before})).sort((a,b) => b.gain - a.gain).slice(0, 5);
+  const watch = rows.filter(r => r.prior != null && (r.last.adj - r.prior <= -0.03 || r.last.adj < 0.88)).map(r => ({...r, drop: r.last.adj - r.prior})).sort((a,b) => a.drop - b.drop).slice(0, 5);
+  const li = (r, val, note) => `<li><span><a href="${rosterLink(r.id)}">${esc(r.u.name)}</a><span class="n">${note}</span></span><span class="val">${val}</span></li>`;
+  const card = (title, why, items, extra = '') => `<div class="card ${extra}"><h3>${title}</h3><p class="why">${why}</p>${items.length ? `<ol>${items.join('')}</ol>` : `<p class="none">Nobody yet. Spotlights need umpires with ${MIN}+ games in this selection.</p>`}</div>`;
+  const cards = [
+    card('Biggest improvers', 'Latest games vs. their own earlier average', improvers.map(r => li(r, `<span class="up">${pts(r.gain)}</span>`, `Last ${r.recentN}: ${pct(r.recent)} · before: ${pct(r.before)} · ${r.n} games`))),
+    card('Top accuracy', `Average adjusted accuracy, ${MIN}+ games`, top(q, 'adj', -1).map(r => li(r, pct(r.adj), `${r.n} games`))),
+    card('Sharpest on the edges', `Edge accuracy, ${MIN}+ games`, top(q, 'edge', -1).map(r => li(r, pct(r.edge), `${r.n} games · adjusted ${pct(r.adj)}`))),
+    card('Most consistent', `Smallest game-to-game swing, ${MIN}+ games`, top(q, 'spread', 1).map(r => li(r, `±${(r.spread*100).toFixed(1)}`, `${r.n} games · average ${pct(r.adj)}`))),
+    card('Fewest missed calls', `Missed calls per game, ${MIN}+ games`, top(q, 'mis', 1).map(r => li(r, r.mis.toFixed(1), `${r.n} games`))),
+    card('Worth a check-in', 'Latest game under 88%, or 3+ points under their own average', watch.map(r => li(r, pct(r.last.adj), `${esc(T.fmtDate(r.last.date))} · ${r.drop <= -0.005 ? `${pts(r.drop)} vs. their average` : 'under 88%'} · ${r.n} games`)), 'watch')
+  ];
+
+  const recent = [...games].reverse().slice(0, 8).map(g => {
+    const rep = D.reports[g.id];
+    return `<div class="rg"><div class="t"><b>${esc(g.ump.name)}</b><span class="m">${esc(g.title)} · ${esc(T.fmtDate(g.date))} · ${g.misses ?? '–'} missed${rep ? ` · <a href="/r/${esc(rep)}" target="_blank" rel="noopener">Report</a>` : ''}</span></div><div class="acc">${pct(g.adj)}</div></div>`;
+  }).join('');
+  const noGames = ups.filter(u => u.active && !per[u.id]).length, portalOn = ups.filter(u => u.active && u.portal).length, active = ups.filter(u => u.active).length;
+
+  $('body').innerHTML = `
+    <section><h2>Headline numbers</h2><div class="tiles">${tiles.map(([k,v,d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('')}</div></section>
+    <section class="two">
+      <div class="panel"><div class="pt"><b>Staff accuracy by week</b><span>Average adjusted accuracy · dashed line: selection average</span></div>${weekChart(games, staff)}</div>
+      <div class="panel"><div class="pt"><b>How games are spread</b><span>Games by adjusted accuracy</span></div>${histogram(games, staff)}</div>
+    </section>
+    <section><h2>Spotlights</h2><div class="cards">${cards.join('')}</div></section>
+    <section><h2>Latest games</h2><div class="recent">${recent}</div></section>
+    <p class="foot">${active} active umpires on this roster · ${noGames} without a game in this selection · ${portalOn} with umpire portal access. <a href="${MPR.coord ? '/coord/umpires/' : '/admin/umpires/'}">Open the roster</a> to sort everyone or see one umpire's trends.</p>`;
+}
+
+function weekChart(games, mean){
+  const wk = {};
+  games.forEach(g => { const d = new Date(g.date + 'T12:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const k = d.toISOString().slice(0,10); (wk[k] ||= []).push(g); });
+  const weeks = Object.keys(wk).sort().map(k => ({ k, n: wk[k].length, v: avg(wk[k].map(g => g.adj)) }));
+  const W = 720, H = 240, L = 42, R = 12, Tp = 14, B = 26;
+  const vals = weeks.map(w => w.v).concat(mean); let lo = Math.min(...vals) - .01, hi = Math.max(...vals) + .01;
+  if (hi - lo < .04) { const m = (hi+lo)/2; lo = m - .02; hi = m + .02; }
+  const n = weeks.length, x = i => L + (n === 1 ? (W-L-R)/2 : i*(W-L-R)/(n-1)), y = v => Tp + (hi - v)*(H-Tp-B)/(hi-lo);
+  let s = '';
+  for (let k = 0; k <= 4; k++){ const v = lo + (hi-lo)*k/4, yy = y(v).toFixed(1); s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${(+yy+4).toFixed(1)}" text-anchor="end">${(v*100).toFixed(0)}%</text>`; }
+  s += `<line x1="${L}" x2="${W-R}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="var(--muted)" stroke-dasharray="4 4"/>`;
+  let lastM = ''; weeks.forEach((w,i) => { const mo = new Date(w.k+'T12:00').toLocaleDateString('en-US',{month:'short'}); if (mo !== lastM){ lastM = mo; s += `<text x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle">${mo}</text>`; } });
+  if (n > 1) s += `<path d="${weeks.map((w,i) => `${i?'L':'M'}${x(i).toFixed(1)},${y(w.v).toFixed(1)}`).join('')}" fill="none" stroke="var(--deep)" stroke-width="2" stroke-linejoin="round"/>`;
+  weeks.forEach((w,i) => {
+    const tip = `Week of ${T.fmtDate(w.k)}: ${pct(w.v)} across ${w.n} game${w.n===1?'':'s'}`;
+    s += `<g class="pt-g"><title>${esc(tip)}</title><rect class="hit" x="${(x(i)-14).toFixed(1)}" y="${Tp}" width="28" height="${H-Tp-B}"/><circle class="dot" cx="${x(i).toFixed(1)}" cy="${y(w.v).toFixed(1)}" r="4.5" fill="var(--deep)" stroke="var(--surface)" stroke-width="2"/></g>`;
+  });
+  const best = weeks.reduce((a,b) => b.v > a.v ? b : a), bi = weeks.indexOf(best);
+  s += `<text x="${x(bi).toFixed(1)}" y="${(y(best.v)-10).toFixed(1)}" text-anchor="middle" style="fill:var(--ink);font-weight:600">${pct(best.v)}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Staff average adjusted accuracy by week, ${n} weeks">${s}</svg>`;
+}
+
+function histogram(games, mean){
+  const edges = [0, .86, .88, .90, .92, .94, .96, .98, 1.0001];
+  const labels = ['<86', '86', '88', '90', '92', '94', '96', '98+'];
+  const bins = labels.map((l,i) => games.filter(g => g.adj >= edges[i] && g.adj < edges[i+1]).length);
+  const W = 420, H = 240, L = 30, R = 8, Tp = 14, B = 26, mx = Math.max(...bins, 1);
+  const bw = (W-L-R)/bins.length, y = v => Tp + (mx - v)*(H-Tp-B)/mx;
+  let s = '';
+  for (let k = 0; k <= 3; k++){ const v = Math.round(mx*k/3), yy = y(v).toFixed(1); s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${(+yy+4).toFixed(1)}" text-anchor="end">${v}</text>`; }
+  bins.forEach((c,i) => {
+    const x0 = L + i*bw + 2, w = bw - 4, top = y(c), h = H - B - top;
+    const tip = `${labels[i] === '<86' ? 'Under 86%' : labels[i] === '98+' ? '98% and up' : `${labels[i]}–${+labels[i]+2}%`}: ${c} game${c===1?'':'s'}`;
+    s += `<g class="bar"><title>${esc(tip)}</title><rect class="hit" x="${x0}" y="${Tp}" width="${w}" height="${H-Tp-B}"/>${c ? `<path class="b" d="M${x0},${H-B} V${(top+4).toFixed(1)} q0,-4 4,-4 h${(w-8).toFixed(1)} q4,0 4,4 V${H-B} Z" fill="var(--deep)"/>` : ''}${c ? `<text x="${(x0+w/2).toFixed(1)}" y="${(top-5).toFixed(1)}" text-anchor="middle" style="fill:var(--ink);font-weight:600">${c}</text>` : ''}</g>`;
+    s += `<text x="${(x0+w/2).toFixed(1)}" y="${H-8}" text-anchor="middle">${labels[i]}</text>`;
+  });
+  s += `<line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="var(--muted)"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Number of games in each adjusted accuracy range">${s}</svg>`;
+}
+
+MPR.ready.then(async me => {
+  ME = me;
+  try {
+    const r = await fetch(MPR.base + '/dashboard', {headers:{accept:'application/json'}});
+    if (!r.ok) throw new Error((await r.json().catch(()=>({}))).error || `The server returned ${r.status}.`);
+    D = await r.json(); setup(); draw();
+  } catch(e) { $('sub').textContent = e.message; }
+});
+})();
+</script>
+</body>
+</html>

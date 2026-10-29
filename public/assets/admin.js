@@ -6,8 +6,8 @@
   const TIERS = ['view', 'send', 'full'];
   const can = (me, t) => me.role === 'master' || TIERS.indexOf(me.tier) >= TIERS.indexOf(t);
   const links = me => me.role === 'master'
-    ? [['/admin/', 'Send a report'], ['/admin/umpires/', 'Umpires'], ['/admin/import/', 'Season import'], ['/admin/coordinators/', 'Coordinators']]
-    : [['/coord/', 'Umpires'], ...(can(me, 'send') ? [['/coord/send/', 'Send a report']] : [])];
+    ? [['/admin/dashboard/', 'Dashboard'], ['/admin/', 'Send a report'], ['/admin/umpires/', 'Umpires'], ['/admin/import/', 'Season import'], ['/admin/coordinators/', 'Coordinators']]
+    : [['/coord/', 'Dashboard'], ['/coord/umpires/', 'Umpires'], ...(can(me, 'send') ? [['/coord/send/', 'Send a report']] : [])];
   function render(me) {
     const host = document.getElementById('nav'); if (!host) return;
     const here = location.pathname.replace(/\/?$/, '/');
