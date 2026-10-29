@@ -108,7 +108,8 @@ r = await call('/coord/api/me', { headers: as(V) });
 check('sign out ends the session', r.status === 401);
 
 // --- pages
-r = await worker.fetch(new Request(ORIGIN + '/coord/'), env); check('/coord/ serves the umpires page', (await r.text()) === 'asset /admin/umpires/');
+r = await worker.fetch(new Request(ORIGIN + '/coord/'), env); check('/coord/ serves the dashboard', (await r.text()) === 'asset /admin/dashboard/');
+r = await worker.fetch(new Request(ORIGIN + '/coord/umpires/'), env); check('/coord/umpires/ serves the umpires page', (await r.text()) === 'asset /admin/umpires/');
 r = await worker.fetch(new Request(ORIGIN + '/coord/send/'), env); check('/coord/send/ serves the send page', (await r.text()) === 'asset /admin/');
 r = await worker.fetch(new Request(ORIGIN + '/coord/login?email=a'), env); check('/coord/login serves the sign-in page', (await r.text()) === 'asset /coord-login');
 console.log(`\n${pass} passed, ${fail} failed`);
