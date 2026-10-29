@@ -24,6 +24,12 @@ h1.pg{font-family:var(--f-display);font-weight:800;font-size:1.8rem;text-transfo
 table{border-collapse:collapse;width:100%;font-size:.88rem}
 th,td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+th[data-sort] button{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;border-radius:4px}
+th[data-sort] button::after{content:"↕";font-size:.85em;opacity:.35}
+th[aria-sort="ascending"] button::after{content:"▲";opacity:1}
+th[aria-sort="descending"] button::after{content:"▼";opacity:1}
+th[aria-sort] button,th[data-sort] button:hover{color:var(--ink)}
+th[data-sort] button:focus-visible{outline:2px solid var(--powder);outline-offset:2px}
 td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
 tbody tr{cursor:pointer}
 tbody tr:hover td{background:color-mix(in srgb,var(--powder) 8%,transparent)}
@@ -109,7 +115,7 @@ button.danger{background:var(--bad)!important;color:#fff!important}
       <label class="check" style="margin:0"><input type="checkbox" id="show-inactive"> Show inactive</label>
     </div>
     <div class="tw"><table>
-      <thead><tr><th>Name</th><th>Conferences</th><th>Email</th><th class="r">Games</th><th>Last game</th><th class="r">Last adj.</th><th class="r">Avg adj.</th><th>Status</th></tr></thead>
+      <thead id="thead"><tr><th data-sort="name"><button type="button">Name</button></th><th>Conferences</th><th>Email</th><th class="r" data-sort="games"><button type="button">Games</button></th><th data-sort="last_game"><button type="button">Last game</button></th><th class="r" data-sort="last_adj"><button type="button">Last adj.</button></th><th class="r" data-sort="avg_adj"><button type="button">Avg adj.</button></th><th>Status</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
     <p class="hint">Roster CSV: one umpire per row with a <b>Name</b> (or <b>First</b> and <b>Last</b>) column and an <b>Email</b> column. <b>Phone</b>, <b>Notes</b> and <b>Conference</b> are optional. You can also tag everyone in a file with one conference when you import. Existing umpires are matched by email and updated, and new conferences are added to the ones they already have.</p>
@@ -198,11 +204,40 @@ function fillTags(){
   $('tag-filter').value = [...$('tag-filter').options].some(o => o.value === cur) ? cur : '';
   $('tag-list').innerHTML = (ME && ME.role === 'coordinator' ? ME.conferences : tags).map(t => `<option value="${esc(t)}">`).join('');
 }
+/* ---------- sorting ---------- */
+// First click on a number or date column shows the highest / newest first; click again to flip. Umpires with no games always sit at the bottom.
+let sort = {key:'name', dir:1};
+try { const v = JSON.parse(localStorage.getItem('mpr-ump-sort') || 'null'); if (v && v.key) sort = v; } catch(e){}
+function sortRows(rows){
+  const k = sort.key, d = sort.dir;
+  const val = u => k === 'games' && !u.games ? null : u[k];
+  return [...rows].sort((a,b) => {
+    if (k === 'name') return d * a.name.localeCompare(b.name);
+    const x = val(a), y = val(b);
+    if (x == null && y == null) return a.name.localeCompare(b.name);
+    if (x == null) return 1; if (y == null) return -1;
+    const c = typeof x === 'string' ? x.localeCompare(y) : x - y;
+    return c ? d * c : a.name.localeCompare(b.name);
+  });
+}
+function drawSort(){
+  document.querySelectorAll('#thead th[data-sort]').forEach(th => {
+    if (th.dataset.sort === sort.key) th.setAttribute('aria-sort', sort.dir > 0 ? 'ascending' : 'descending'); else th.removeAttribute('aria-sort');
+  });
+}
+$('thead').addEventListener('click', e => {
+  const th = e.target.closest('th[data-sort]'); if (!th) return;
+  const k = th.dataset.sort;
+  sort = sort.key === k ? {key:k, dir:-sort.dir} : {key:k, dir: k === 'name' ? 1 : -1};
+  try { localStorage.setItem('mpr-ump-sort', JSON.stringify(sort)); } catch(e){}
+  draw();
+});
 function draw(){
+  drawSort();
   const q = $('q').value.trim().toLowerCase(), inact = $('show-inactive').checked;
   const tf = $('tag-filter').value;
   const hasTag = u => tf === '' ? true : tf === '__none' ? !(u.tags||[]).length : (u.tags||[]).some(t => t.toLowerCase() === tf.toLowerCase());
-  const rows = list.filter(u => (inact || u.active) && hasTag(u) && (!q || u.name.toLowerCase().includes(q) || u.email.includes(q) || (u.tags||[]).some(t => t.toLowerCase().includes(q))));
+  const rows = sortRows(list.filter(u => (inact || u.active) && hasTag(u) && (!q || u.name.toLowerCase().includes(q) || u.email.includes(q) || (u.tags||[]).some(t => t.toLowerCase().includes(q)))));
   const active = list.filter(u=>u.active).length;
   $('count').textContent = `${active} active umpire${active===1?'':'s'}${list.length>active?`, ${list.length-active} inactive`:''}.` + (tf ? ` Showing ${rows.length} in ${tf === '__none' ? 'no conference' : tf}.` : '');
   $('rows').innerHTML = rows.map(u => `<tr data-id="${esc(u.id)}" class="${selected===u.id?'sel':''}" tabindex="0">
