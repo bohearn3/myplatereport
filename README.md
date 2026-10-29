@@ -15,7 +15,9 @@ Hosted on Cloudflare Workers at **myplatereport.com**.
 | `public/admin/coordinators/` | Master admin: add coordinators, set conferences and access tier, send invites |
 | `public/coord-login.html` | Coordinator sign-in (email code), served at `/coord/login` |
 | `public/assets/` | Shared admin styles and the role-aware menu script |
-| `src/auth.js` | Coordinator sign-in codes and sessions |
+| `public/portal-login.html`, `public/portal-home.html` | Umpire portal sign-in (`/portal/login`) and dashboard (`/portal/`) |
+| `public/assets/trends.js` | Trend tiles and charts, shared by the roster card and the umpire portal |
+| `src/auth.js` | Email-code sign-in and sessions for coordinators and umpires |
 | `public/report.html` | The umpire report page (interactive + print/PDF layout). Loads data from `/api/reports/<id>`, or from the admin preview |
 | `public/js/engine.js` | Scoring engine: zone checks, raw/adjusted accuracy, edge pitches, perceived zone, fairness, HBP review, trends |
 | `public/js/trackman-csv.js` | Trackman CSV reader and file checks |
@@ -38,6 +40,7 @@ Hosted on Cloudflare Workers at **myplatereport.com**.
   - **View & send:** also send reports to umpires already on their roster. Replies go to the coordinator.
   - **Full control:** also add and edit umpires and import rosters; they can only add or remove their own conference tags.
 - **Fixing a wrong upload:** on an umpire's card, each game has *Move to another umpire* and *Remove game* (master and full-control coordinators, within their conferences). Moving or removing turns off every old report link for that game (the wrong umpire may have been emailed one) and deletes its cached PDF; a move can email the new link to the right umpire. Changes are recorded in the `audit` table.
+- **Umpires:** sign in at `/portal/login` (button on the home page) with the email their reports go to, same 6-digit code. They see only their own games, reports, PDFs and trends. Portal access is **off by default**; the master admin or a full-control coordinator turns it on from the umpire's card (*Turn on and email invite*). Turning it off, turning the umpire off, or changing their email signs them out. Umpire sessions use their own cookie (`mpr_ump`) and tables, so they never carry coordinator or admin access.
 - Every rule is enforced on the server (`/coord/api/*`); pages only hide what a tier can't use. Turning a coordinator off signs them out everywhere.
 
 ## Deploying
@@ -58,4 +61,4 @@ First-time setup (Cloudflare dashboard):
 5. Umpire roster page with CSV import ✓
 6. Conference coordinator access (view / send / full) ✓
 7. Admin staff trend report every few weeks
-8. Umpire logins
+8. Umpire portal at /portal ✓

@@ -79,3 +79,16 @@ export function inviteEmail({ name, conferences, tier, url }) {
     text: `${first}, you now have coordinator access on MyPlateReport${conf ? ` for ${conf}` : ''}. You can ${what}.\n\nSign in with this email address at ${url}. We'll email you a 6-digit code each time; there's no password.`
   };
 }
+
+export function portalInviteEmail({ name, url }) {
+  const first = String(name || '').split(' ')[0] || 'Hi';
+  return {
+    subject: 'Your MyPlateReport umpire portal is ready',
+    html: shell(`<p style="margin:0 0 12px">${esc(first)}, you can now sign in to MyPlateReport to see all of your postgame strike zone reports and your season trends in one place.</p>
+      <p style="margin:0 0 16px">Sign in with this email address. We'll send you a 6-digit code each time; there's no password.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#0D1117;border-radius:10px">
+        <a href="${esc(url)}" style="display:inline-block;padding:13px 22px;font:700 15px Arial,sans-serif;color:#FFFFFF;text-decoration:none">Open my umpire portal</a></td></tr></table>
+      <p style="margin:16px 0 0;color:#5A6573;font-size:13px">${esc(url)}</p>`),
+    text: `${first}, you can now sign in to MyPlateReport to see all of your postgame strike zone reports and season trends.\n\nSign in with this email address at ${url}. We'll email you a 6-digit code each time; there's no password.`
+  };
+}

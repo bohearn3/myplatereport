@@ -26,6 +26,10 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-bod
 .top{display:flex;align-items:center;gap:14px;padding-block:18px}
 .logo{display:block;width:min(280px,60vw);height:auto}
 .top .name{margin-left:auto;color:#9fb4c7;font-size:1.1rem}
+.login{display:inline-flex;align-items:center;gap:8px;margin-top:24px;padding:13px 22px;border-radius:10px;background:var(--powder,#63A6DA);color:#000;font-weight:700;text-decoration:none;font-size:1rem}
+.login:hover{filter:brightness(1.08)}
+.login:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.login span{font-size:1.1em;line-height:1}
 .name{font-family:var(--f-display);font-weight:800;font-size:1.5rem;letter-spacing:.02em;text-transform:uppercase}
 .hero{padding-block:44px 56px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center}
 .hero-text{min-width:0}
@@ -57,6 +61,7 @@ footer{border-top:1px solid var(--line);padding-block:22px 36px;color:var(--mute
       <div class="eyebrow">Postgame plate umpire reports</div>
       <h1>Every call. <span>Every edge.</span> Every game.</h1>
       <p>Postgame strike zone reports for plate umpires, built from Trackman pitch data and scored on the 2027 NCAA National Strike Zone Initiative static zone.</p>
+      <a class="login" href="/portal/login">Umpire login <span aria-hidden="true">→</span></a>
       </div>
       <figure class="hero-photo">
         <img src="/img/hero-plate-umpire.jpg" srcset="/img/hero-plate-umpire-560.jpg 560w, /img/hero-plate-umpire.jpg 960w" sizes="(max-width:720px) 92vw, 380px" alt="Plate umpire signaling a called strike as the catcher holds the ball" width="960" height="1200">

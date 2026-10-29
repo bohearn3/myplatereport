@@ -66,7 +66,12 @@ select.tagsel{width:auto;min-width:170px}
 .side.wide{min-width:0}
 .game{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.86rem}
 .game b{display:block}
-.game .m{color:var(--muted)}
+.game .m,#portal .m{color:var(--muted)}
+#portal .m{font-size:.86rem;margin:0}
+#portal .btns{align-items:center;gap:14px}
+#portal .act{background:none;border:0;padding:0;font:inherit;font-weight:600;font-size:.88rem;color:var(--muted);cursor:pointer}
+#portal .act:hover{color:var(--ink)}
+#portal .act.warn:hover{color:var(--bad)}
 .game .links{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
 .game a{color:var(--deep);font-weight:600}
 .game .act{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
@@ -129,6 +134,12 @@ button.danger{background:var(--bad)!important;color:#fff!important}
         <a class="ghost" id="f-send" href="/admin/">Send a report to this umpire</a>
       </div>
       <div id="f-msg"></div>
+      <div id="portal" hidden>
+        <h3>Umpire portal</h3>
+        <p class="m" id="p-status"></p>
+        <div class="btns" id="p-btns"></div>
+        <div id="p-msg"></div>
+      </div>
       <div id="trends" hidden>
         <h3>Trends</h3>
         <div class="tiles" id="t-tiles"></div>
@@ -158,6 +169,7 @@ button.danger{background:var(--bad)!important;color:#fff!important}
 </div>
 
 <script src="/assets/admin.js"></script>
+<script src="/assets/trends.js"></script>
 <script src="/js/trackman-csv.js"></script>
 <script>
 (function(){
@@ -206,7 +218,7 @@ async function open(id){
     $('c-eyebrow').textContent = 'New umpire'; $('c-title').textContent = 'Add umpire';
     ['f-name','f-email','f-phone','f-notes'].forEach(k=>$(k).value=''); $('f-active').checked = true;
     const tf = $('tag-filter').value; cardTags = tf && tf !== '__none' ? [tf] : []; drawCardTags();
-    $('history').hidden = true; $('trends').hidden = true; $('f-send').hidden = true; $('f-name').focus(); return;
+    $('history').hidden = true; $('trends').hidden = true; $('portal').hidden = true; $('f-send').hidden = true; $('f-name').focus(); return;
   }
   const d = await api(MPR.base + '/umpires/'+id);
   const u = d.umpire;
@@ -216,6 +228,7 @@ async function open(id){
   $('f-send').hidden = !MPR.can(ME, 'send'); $('f-send').href = `${MPR.coord ? '/coord/send/' : '/admin/'}?umpire=${encodeURIComponent(u.id)}`;
   const byGame = {}; d.reports.forEach(r => { (byGame[r.game_id] ||= []).push(r); });
   drawTrends(d.games, byGame);
+  drawPortal(u);
   $('history').hidden = false;
   $('games').innerHTML = d.games.map(g => {
     const reps = byGame[g.id] || [], latest = reps[0];
@@ -227,54 +240,12 @@ async function open(id){
       <div class="fix" id="fix-${esc(g.id)}" hidden></div></div>`;
   }).join('') || '<p class="m">No games yet.</p>';
 }
-/* ---------- trend charts ---------- */
-const isScrim = g => (g.home && g.home === g.away) || /exclusive|undefined/i.test(g.level || '');
-const avg = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
-function lineChart(games, key, o){
-  const pts = games.map((g,i) => ({g, i, v: g[key]})).filter(p => p.v != null);
-  if (pts.length < 1) return '';
-  const W = 380, H = 128, L = 34, R = 10, T = 12, B = 22;
-  const vals = pts.map(p => p.v); let lo = Math.min(...vals), hi = Math.max(...vals);
-  if (o.pct){ lo = Math.max(0, lo - .02); hi = Math.min(1, hi + .02); } else { lo = Math.max(0, lo - 2); hi = hi + 2; }
-  if (hi - lo < (o.pct ? .04 : 4)) { const m = (hi+lo)/2, h = o.pct ? .02 : 2; lo = m - h; hi = m + h; }
-  const n = games.length, x = i => L + (n === 1 ? (W-L-R)/2 : i*(W-L-R)/(n-1)), y = v => T + (hi - v)*(H-T-B)/(hi - lo);
-  const fmt = v => o.pct ? (v*100).toFixed(o.dp ?? 0)+'%' : (Number.isInteger(v) ? v : v.toFixed(1));
-  let g = '';
-  for (let k = 0; k <= 3; k++){ const v = lo + (hi-lo)*k/3, yy = y(v).toFixed(1);
-    g += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${(+yy+3.5).toFixed(1)}" text-anchor="end">${fmt(v)}</text>`; }
-  const mean = avg(vals); g += `<line x1="${L}" x2="${W-R}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1"/>`;
-  // month ticks
-  let lastM = ''; games.forEach((gm,i) => { const mo = new Date(gm.date+'T12:00').toLocaleDateString('en-US',{month:'short'}); if (mo !== lastM){ lastM = mo; g += `<text x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle">${mo}</text>`; } });
-  const d = pts.map((p,k) => `${k?'L':'M'}${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
-  if (pts.length > 1) g += `<path d="${d}" fill="none" stroke="var(--deep)" stroke-width="2" stroke-linejoin="round"/>`;
-  if (o.second){ const p2 = games.map((gm,i)=>({i,v:gm[o.second]})).filter(p=>p.v!=null); if (p2.length > 1) g += `<path d="${p2.map((p,k)=>`${k?'L':'M'}${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join('')}" fill="none" stroke="var(--powder)" stroke-width="1.5" stroke-dasharray="2 3"/>`; }
-  pts.forEach(p => {
-    const rep = o.reports[p.g.id], tip = `${p.g.date} · ${p.g.title}: ${fmt(p.v)}`;
-    const dot = `<circle cx="${x(p.i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="4.2" fill="${isScrim(p.g)?'var(--surface)':'var(--deep)'}" stroke="var(--deep)" stroke-width="2"><title>${esc(tip)}</title></circle>`;
-    g += rep ? `<a href="/r/${esc(rep)}" target="_blank" rel="noopener">${dot}</a>` : dot;
-  });
-  return `<div class="chart"><div class="ct">${o.title}<span>${o.note || ''}</span></div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.title)} by game">${g}</svg></div>`;
-}
+/* ---------- trend charts (shared with the umpire portal) ---------- */
 function drawTrends(gamesDesc, byGame){
-  const games = [...gamesDesc].reverse().map(g => ({...g, title: g.home===g.away ? `${g.home_name||g.home} intrasquad` : `${g.away_name||g.away} at ${g.home_name||g.home}`}));
-  if (!games.length){ $('trends').hidden = true; return; }
-  $('trends').hidden = false;
   const reports = {}; Object.entries(byGame).forEach(([gid, list]) => { reports[gid] = list[0].id; });
-  const adj = games.map(g => g.adj).filter(v => v != null), mis = games.map(g => g.misses).filter(v => v != null);
-  const seasonAdj = avg(adj), last5 = avg(adj.slice(-5)), delta = last5 != null && seasonAdj != null ? last5 - seasonAdj : null;
-  const scr = games.filter(isScrim).length, best = adj.length ? Math.max(...adj) : null;
-  const pct = v => v==null ? '–' : (v*100).toFixed(1)+'%';
-  const arrow = delta == null || adj.length < 3 ? '' : Math.abs(delta) < .0025 ? ' <span class="d">steady</span>' : delta > 0 ? ` <span class="up">▲ ${(delta*100).toFixed(1)}</span>` : ` <span class="down">▼ ${(Math.abs(delta)*100).toFixed(1)}</span>`;
-  $('t-tiles').innerHTML = [
-    ['Games tracked', games.length, scr ? `${games.length-scr} regular, ${scr} scrimmage` : `${fmtDate(games[0].date)} – ${fmtDate(games[games.length-1].date)}`],
-    ['Average adjusted', pct(seasonAdj), `Best ${pct(best)}`],
-    ['Last 5 games', pct(last5) + arrow, adj.length >= 3 ? 'vs. their overall average' : 'More games needed for a trend'],
-    ['Missed calls per game', mis.length ? avg(mis).toFixed(1) : '–', mis.length ? `Fewest ${Math.min(...mis)}, most ${Math.max(...mis)}` : '']
-  ].map(([k,v,d]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
-  $('t-charts').innerHTML =
-    lineChart(games, 'adj', {title:'Adjusted accuracy', note:'dotted: raw', pct:true, dp:0, second:'raw', reports}) +
-    lineChart(games, 'misses', {title:'Missed calls', note:'lower is better', reports}) +
-    lineChart(games, 'edge', {title:'Edge accuracy', note:'pitches within 2" of the edge', pct:true, reports});
+  const t = MPRTrends.render(gamesDesc, reports);
+  if (!t){ $('trends').hidden = true; return; }
+  $('trends').hidden = false; $('t-tiles').innerHTML = t.tiles; $('t-charts').innerHTML = t.charts;
 }
 
 $('rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (tr) open(tr.dataset.id); });
@@ -403,6 +374,30 @@ $('games').addEventListener('click', async e => {
       }
     } catch(err) { msg.innerHTML = `<div class="msg err">${esc(err.message)}</div>`; go.disabled = false; go.textContent = go.dataset.go === 'move' ? 'Move game' : 'Remove game'; }
   }
+});
+/* ---------- umpire portal access ---------- */
+function drawPortal(u){
+  $('portal').hidden = false; $('p-msg').innerHTML = '';
+  const on = !!u.portal;
+  $('p-status').innerHTML = on
+    ? `<span class="pill on">On</span> ${esc(u.name.split(' ')[0])} can sign in at <b>myplatereport.com/portal</b> with ${esc(u.email)} to see their own reports and trends.${u.last_login ? ` Last signed in ${fmtDate(u.last_login.slice(0,10))}.` : ' Has not signed in yet.'}`
+    : `<span class="pill off">Off</span> ${esc(u.name.split(' ')[0])} can't sign in yet. Reports still arrive by email.`;
+  if (!u.active && !on) $('p-status').innerHTML += ' Turn the umpire back on before giving portal access.';
+  const full = ME && MPR.can(ME, 'full');
+  $('p-btns').innerHTML = !full ? '' : on
+    ? `<button type="button" class="ghost" data-portal="invite">Email sign-in link again</button><button type="button" class="act warn" data-portal="off">Turn off portal access</button>`
+    : (u.active ? `<button type="button" class="ghost" data-portal="on-invite">Turn on and email invite</button><button type="button" class="act" data-portal="on">Turn on without email</button>` : '');
+}
+$('p-btns').addEventListener('click', async e => {
+  const b = e.target.closest('[data-portal]'); if (!b) return;
+  const what = b.dataset.portal;
+  const body = what === 'off' ? {on:false} : what === 'invite' ? {on:true, invite:true} : {on:true, invite: what === 'on-invite'};
+  b.disabled = true;
+  try {
+    const r = await api(MPR.base + '/umpires/' + selected + '/portal', {method:'POST', body: JSON.stringify(body)});
+    await open(selected);
+    $('p-msg').innerHTML = `<div class="msg ok">${esc(r.message)}</div>`;
+  } catch(err){ $('p-msg').innerHTML = `<div class="msg err">${esc(err.message)}</div>`; b.disabled = false; }
 });
 function flash(t){ $('f-msg').innerHTML = `<div class="msg ok">${esc(t)}</div>`; $('history').scrollIntoView({block:'nearest'}); }
 

@@ -7,10 +7,12 @@
 // Conference coordinators (site sign-in with email codes):
 //          /coord/login         sign in        /coord/  umpires        /coord/send/  send a report
 //          /coord/api/...       same API as admin, limited by tier and conference
+// Umpires (site sign-in with email codes, only when their portal access is on):
+//          /portal/login        sign in        /portal/  their own reports and trends      /portal/api/...
 
 import '../public/js/engine.js';
-import { reportEmail, codeEmail, inviteEmail } from './email.js';
-import { startLogin, verifyLogin, sessionCoordinator, endSession, sessionCookie } from './auth.js';
+import { reportEmail, codeEmail, inviteEmail, portalInviteEmail } from './email.js';
+import { startLogin, verifyLogin, sessionUser, endSession, sessionCookie } from './auth.js';
 
 const E = globalThis.UmpEngine;
 const FROM = 'MyPlateReport <reports@myplatereport.com>';
@@ -60,6 +62,14 @@ async function ensureSchema(db) {
     try { await db.prepare(`ALTER TABLE reports ADD COLUMN revoked_at TEXT`).run(); } catch (e) { /* already there */ }
     await db.prepare(`CREATE TABLE IF NOT EXISTS audit (at TEXT NOT NULL, actor TEXT, action TEXT NOT NULL, details TEXT)`).run();
     await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '4') ON CONFLICT(k) DO UPDATE SET v = '4'`).run();
+  }
+  if (ver < 5) {
+    // Umpire portal: off for everyone until an admin turns it on.
+    for (const q of [`ALTER TABLE umpires ADD COLUMN portal INTEGER NOT NULL DEFAULT 0`, `ALTER TABLE umpires ADD COLUMN last_login TEXT`]) { try { await db.prepare(q).run(); } catch (e) { /* already there */ } }
+    await db.prepare(`CREATE TABLE IF NOT EXISTS ump_codes (email TEXT NOT NULL, code_hash TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, used INTEGER NOT NULL DEFAULT 0)`).run();
+    await db.prepare(`CREATE INDEX IF NOT EXISTS ump_codes_email ON ump_codes (email, created_at)`).run();
+    await db.prepare(`CREATE TABLE IF NOT EXISTS ump_sessions (id_hash TEXT PRIMARY KEY, umpire_id TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL, user_agent TEXT)`).run();
+    await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '5') ON CONFLICT(k) DO UPDATE SET v = '5'`).run();
   }
   schemaReady = true;
 }
@@ -352,8 +362,8 @@ async function getUmpire(id, env, a) {
     FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away
     WHERE g.umpire_id = ? ORDER BY g.date DESC, g.created_at DESC`).bind(id).all()).results;
   const reports = (await env.DB.prepare(`SELECT id, game_id, created_at, created_by, email_status, emailed_at, pdf_status FROM reports WHERE umpire_id = ? AND revoked_at IS NULL ORDER BY created_at DESC`).bind(id).all()).results;
-  const { phone, notes, active, created_at, name, email } = u;
-  return json({ umpire: { id, name, email, phone, notes, active, created_at, tags: parseTags(u.tags) }, games, reports });
+  const { phone, notes, active, created_at, name, email, portal, last_login } = u;
+  return json({ umpire: { id, name, email, phone, notes, active, created_at, portal: portal ? 1 : 0, last_login: last_login || null, tags: parseTags(u.tags) }, games, reports });
 }
 function cleanUmpire(o) {
   return {
@@ -394,9 +404,33 @@ async function updateUmpire(env, a, id, body) {
   const tags = scopeTags(a, canon(u.tags, await tagSpellings(env)), parseTags(cur.tags));
   const clash = await env.DB.prepare('SELECT id FROM umpires WHERE email = ? AND id <> ?').bind(u.email, id).first();
   if (clash) return json({ error: 'Another umpire already uses that email.' }, 409);
+  const active = body.active === false || body.active === 0 ? 0 : 1;
   await env.DB.prepare('UPDATE umpires SET name = ?, email = ?, phone = ?, notes = ?, tags = ?, active = ? WHERE id = ?')
-    .bind(u.name, u.email, u.phone, u.notes, JSON.stringify(tags), body.active === false || body.active === 0 ? 0 : 1, id).run();
+    .bind(u.name, u.email, u.phone, u.notes, JSON.stringify(tags), active, id).run();
+  // A new email or turning the umpire off signs them out of the portal everywhere.
+  if (!active || u.email !== cur.email) await env.DB.prepare('DELETE FROM ump_sessions WHERE umpire_id = ?').bind(id).run();
   return json({ ok: true });
+}
+
+/* ---------------- umpire portal access (master + full-control coordinators) ---------------- */
+async function setPortal(request, env, a, id, body) {
+  need(a, 'full');
+  const u = await umpireInScope(env, a, id);
+  const on = !!body.on;
+  if (on && !u.active) return json({ error: 'Turn this umpire on before giving portal access.' }, 400);
+  await env.DB.prepare('UPDATE umpires SET portal = ? WHERE id = ?').bind(on ? 1 : 0, id).run();
+  await audit(env.DB, a, on ? 'portal_on' : 'portal_off', { umpire: { id, name: u.name }, invite: !!body.invite });
+  if (!on) {
+    await env.DB.prepare('DELETE FROM ump_sessions WHERE umpire_id = ?').bind(id).run();
+    return json({ ok: true, message: `Portal access turned off. ${u.name} is signed out.` });
+  }
+  if (!body.invite) return json({ ok: true, message: `Portal access is on. ${u.name} can sign in at /portal.` });
+  if (!env.RESEND_API_KEY) return json({ error: 'Portal access is on, but email is not set up, so no invite was sent.' }, 503);
+  const origin = new URL(request.url).origin;
+  const msg = portalInviteEmail({ name: u.name, url: `${origin}/portal/login?email=${encodeURIComponent(u.email)}` });
+  const out = await sendEmail(env, { from: FROM, to: [u.email], reply_to: isMaster(a) ? (env.REPLY_TO || a.email) : a.email, subject: msg.subject, html: msg.html, text: msg.text });
+  return out.ok ? json({ ok: true, message: `Portal access is on and an invite went to ${u.email}.` })
+    : json({ error: `Portal access is on, but the invite could not be sent: ${out.message}` }, 502);
 }
 
 /* ---------------- coordinators (master only) ---------------- */
@@ -492,6 +526,8 @@ async function api(request, env, a, sub) {
   const um = sub.match(/^\/umpires\/([A-Za-z0-9_-]+)$/);
   if (um && m === 'GET') return getUmpire(um[1], env, a);
   if (um && m === 'PUT') { need(a, 'full'); return updateUmpire(env, a, um[1], body); }
+  const pm = sub.match(/^\/umpires\/([A-Za-z0-9_-]+)\/portal$/);
+  if (pm && m === 'POST') return setPortal(request, env, a, pm[1], body || {});
   const gm = sub.match(/^\/games\/([A-Za-z0-9_-]+)(\/move)?$/);
   if (gm && gm[2] && m === 'POST') return moveGame(request, env, a, gm[1], body);
   if (gm && !gm[2] && m === 'DELETE') return removeGame(env, a, gm[1]);
@@ -502,30 +538,58 @@ async function api(request, env, a, sub) {
   return json({ error: 'Not found.' }, 404);
 }
 
-/* ---------------- coordinator sign-in ---------------- */
-async function loginApi(request, env, sub) {
+/* ---------------- sign-in (coordinators and umpires) ---------------- */
+async function loginApi(request, env, kind, sub) {
   const db = env.DB;
   let body = {};
   try { body = await request.json(); } catch { /* empty */ }
   const email = String(body.email || '').trim().toLowerCase();
   if (sub === '/login/start') {
     if (!validEmail(email)) return json({ error: 'Enter a valid email address.' }, 400);
-    const r = await startLogin(db, email);
+    const r = await startLogin(db, kind, email);
     if (r.send && env.RESEND_API_KEY) {
-      const msg = codeEmail({ name: r.coordinator.name, code: r.code });
+      const msg = codeEmail({ name: r.user.name, code: r.code });
       await sendEmail(env, { from: FROM, to: [email], subject: msg.subject, html: msg.html, text: msg.text });
     }
     // Same answer either way, so the form can't be used to find out who has access.
-    return json({ ok: true, message: 'If that email has coordinator access, a 6-digit code is on its way.' });
+    return json({ ok: true, message: `If that email has ${kind === 'ump' ? 'portal' : 'coordinator'} access, a 6-digit code is on its way.` });
   }
   if (sub === '/login/verify') {
-    const r = await verifyLogin(db, email, body.code, request.headers.get('user-agent'));
+    const r = await verifyLogin(db, kind, email, body.code, request.headers.get('user-agent'));
     if (r.error) return json({ error: r.error }, 400);
-    return json({ ok: true }, 200, { 'set-cookie': sessionCookie(r.token, r.maxAge) });
+    return json({ ok: true }, 200, { 'set-cookie': sessionCookie(kind, r.token, r.maxAge) });
   }
   if (sub === '/logout') {
-    await endSession(db, request);
-    return json({ ok: true }, 200, { 'set-cookie': sessionCookie('', 0) });
+    await endSession(db, kind, request);
+    return json({ ok: true }, 200, { 'set-cookie': sessionCookie(kind, '', 0) });
+  }
+  return json({ error: 'Not found.' }, 404);
+}
+
+/* ---------------- umpire portal API: only the signed-in umpire's own data ---------------- */
+async function portalApi(request, env, u, sub) {
+  const db = env.DB, m = request.method;
+  if (sub === '/me' && m === 'GET') {
+    const games = (await db.prepare(`SELECT g.id, g.date, g.home, g.away, g.stadium, g.level, g.adj, g.raw, g.decisions, g.misses, g.edge,
+        th.full_name AS home_name, ta.full_name AS away_name
+      FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away
+      WHERE g.umpire_id = ? ORDER BY g.date DESC, g.created_at DESC`).bind(u.id).all()).results;
+    const reports = {};
+    for (const r of (await db.prepare(`SELECT id, game_id FROM reports WHERE umpire_id = ? AND revoked_at IS NULL ORDER BY created_at DESC`).bind(u.id).all()).results)
+      if (!reports[r.game_id]) reports[r.game_id] = r.id;
+    return json({ umpire: { name: u.name, email: u.email, conferences: parseTags(u.tags) }, games, reports });
+  }
+  // A game with no live report link (e.g. a silent import whose link was turned off) gets a fresh one when the umpire opens it.
+  const om = sub.match(/^\/games\/([A-Za-z0-9_-]+)\/open$/);
+  if (om && m === 'POST') {
+    const g = await db.prepare('SELECT id FROM games WHERE id = ? AND umpire_id = ?').bind(om[1], u.id).first();
+    if (!g) return json({ error: 'Game not found.' }, 404);
+    const ex = await db.prepare('SELECT id FROM reports WHERE game_id = ? AND umpire_id = ? AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1').bind(g.id, u.id).first();
+    if (ex) return json({ ok: true, reportId: ex.id });
+    const id = token();
+    await db.prepare('INSERT INTO reports (id, game_id, umpire_id, created_by, created_at, email_status, pdf_status) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, g.id, u.id, 'portal', now(), 'opened in portal', null).run();
+    return json({ ok: true, reportId: id });
   }
   return json({ error: 'Not found.' }, 404);
 }
@@ -557,10 +621,25 @@ export default {
           if (!(request.headers.get('content-type') || '').includes('application/json')) return json({ error: 'Request blocked.' }, 415);
         }
         const sub = p.slice('/coord/api'.length);
-        if (sub.startsWith('/login/') || sub === '/logout') return await loginApi(request, env, sub);
-        const c = await sessionCoordinator(env.DB, request);
+        if (sub.startsWith('/login/') || sub === '/logout') return await loginApi(request, env, 'coord', sub);
+        const c = await sessionUser(env.DB, 'coord', request);
         if (!c) return json({ error: 'Please sign in.' }, 401);
         return await api(request, env, { kind: 'coord', id: c.id, name: c.name, email: c.email, tier: c.tier, conferences: parseTags(c.conferences) }, sub);
+      }
+      // Umpires: site sign-in, their own data only.
+      if (p.startsWith('/portal/api/')) {
+        if (!env.DB) return json({ error: 'The database is not connected yet.' }, 503);
+        await ensureSchema(env.DB);
+        if (request.method !== 'GET') {
+          const origin = request.headers.get('origin');
+          if (origin && origin !== url.origin) return json({ error: 'Request blocked.' }, 403);
+          if (!(request.headers.get('content-type') || '').includes('application/json')) return json({ error: 'Request blocked.' }, 415);
+        }
+        const sub = p.slice('/portal/api'.length);
+        if (sub.startsWith('/login/') || sub === '/logout') return await loginApi(request, env, 'ump', sub);
+        const u = await sessionUser(env.DB, 'ump', request);
+        if (!u) return json({ error: 'Please sign in.' }, 401);
+        return await portalApi(request, env, u, sub);
       }
     } catch (e) {
       if (e instanceof HttpError) return json({ error: e.message }, e.status);
@@ -577,6 +656,8 @@ export default {
     if (p === '/coord' || p === '/coord/' || p === '/coord/umpires' || p === '/coord/umpires/') return env.ASSETS.fetch(new Request(new URL('/admin/umpires/', url), request));
     if (p === '/coord/send' || p === '/coord/send/') return env.ASSETS.fetch(new Request(new URL('/admin/', url), request));
     if (p === '/coord/login' || p === '/coord/login/') return env.ASSETS.fetch(new Request(new URL('/coord-login', url), request));
+    if (p === '/portal' || p === '/portal/') return env.ASSETS.fetch(new Request(new URL('/portal-home', url), request));
+    if (p === '/portal/login' || p === '/portal/login/') return env.ASSETS.fetch(new Request(new URL('/portal-login', url), request));
 
     return env.ASSETS.fetch(request);
   }
