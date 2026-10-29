@@ -1,0 +1,310 @@
+# Wikipedia "List of NCAA Division I baseball programs" (affiliations for the 2027 season), fetched Oct 29, 2026
+# School (aliases) | Nickname | State | Conference
+University at Albany, The State University of New York (Albany)|Great Danes|New York|America East
+Binghamton University|Bearcats|New York|America East
+Bryant University|Bulldogs|Rhode Island|America East
+University of Maine|Black Bears|Maine|America East
+New Jersey Institute of Technology (NJIT)|Highlanders|New Jersey|America East
+University of Massachusetts Lowell (UMass Lowell)|River Hawks|Massachusetts|America East
+University of Maryland, Baltimore County (UMBC)|Retrievers|Maryland|America East
+University of North Carolina at Charlotte (Charlotte)|49ers|North Carolina|American
+East Carolina University|Pirates|North Carolina|American
+Florida Atlantic University (FAU)|Owls|Florida|American
+University of Memphis|Tigers|Tennessee|American
+Rice University|Owls|Texas|American
+University of South Florida (USF/South Florida)|Bulls|Florida|American
+Tulane University|Green Wave|Louisiana|American
+University of Alabama at Birmingham (UAB)|Blazers|Alabama|American
+University of Texas at San Antonio (UTSA)|Roadrunners|Texas|American
+Wichita State University|Shockers|Kansas|American
+Boston College|Eagles|Massachusetts|Atlantic Coast
+University of California, Berkeley (California/Cal)|Golden Bears|California|Atlantic Coast
+Clemson University|Tigers|South Carolina|Atlantic Coast
+Duke University|Blue Devils|North Carolina|Atlantic Coast
+Florida State University|Seminoles|Florida|Atlantic Coast
+Georgia Institute of Technology (Georgia Tech)|Yellow Jackets|Georgia|Atlantic Coast
+University of Louisville|Cardinals|Kentucky|Atlantic Coast
+University of Miami|Hurricanes|Florida|Atlantic Coast
+University of North Carolina at Chapel Hill (North Carolina/Carolina/UNC)|Tar Heels|North Carolina|Atlantic Coast
+North Carolina State University (NC State)|Wolfpack|North Carolina|Atlantic Coast
+University of Notre Dame|Fighting Irish|Indiana|Atlantic Coast
+University of Pittsburgh (Pitt)|Panthers|Pennsylvania|Atlantic Coast
+Stanford University|Cardinal|California|Atlantic Coast
+University of Virginia|Cavaliers|Virginia|Atlantic Coast
+Virginia Polytechnic Institute and State University (Virginia Tech)|Hokies|Virginia|Atlantic Coast
+Wake Forest University|Demon Deacons|North Carolina|Atlantic Coast
+Bellarmine University|Knights|Kentucky|ASUN
+Florida Gulf Coast University (FGCU)|Eagles|Florida|ASUN
+Jacksonville University|Dolphins|Florida|ASUN
+Lipscomb University|Bisons|Tennessee|ASUN
+University of North Florida|Ospreys|Florida|ASUN
+Queens University of Charlotte (Queens)|Royals|North Carolina|ASUN
+Stetson University|Hatters|Florida|ASUN
+University of West Florida (West Florida)|Argonauts|Florida|ASUN
+Davidson College|Wildcats|North Carolina|Atlantic 10
+University of Dayton|Flyers|Ohio|Atlantic 10
+Fordham University|Rams|New York|Atlantic 10
+George Mason University|Patriots|Virginia|Atlantic 10
+George Washington University|Revolutionaries|Washington, D.C.|Atlantic 10
+La Salle University|Explorers|Pennsylvania|Atlantic 10
+University of Rhode Island|Rams|Rhode Island|Atlantic 10
+University of Richmond|Spiders|Virginia|Atlantic 10
+St. Bonaventure University|Bonnies|New York|Atlantic 10
+Saint Joseph's University|Hawks|Pennsylvania|Atlantic 10
+Saint Louis University|Billikens|Missouri|Atlantic 10
+Virginia Commonwealth University (VCU)|Rams|Virginia|Atlantic 10
+Butler University|Bulldogs|Indiana|Big East
+Creighton University|Bluejays|Nebraska|Big East
+Georgetown University|Hoyas|Washington, D.C.|Big East
+St. John's University|Red Storm|New York|Big East
+Seton Hall University|Pirates|New Jersey|Big East
+University of Connecticut (UConn)|Huskies|Connecticut|Big East
+Villanova University|Wildcats|Pennsylvania|Big East
+Xavier University|Musketeers|Ohio|Big East
+Charleston Southern University|Buccaneers|South Carolina|Big South
+Gardner–Webb University|Runnin' Bulldogs|North Carolina|Big South
+High Point University|Panthers|North Carolina|Big South
+Longwood University|Lancers|Virginia|Big South
+Presbyterian College|Blue Hose|South Carolina|Big South
+Radford University|Highlanders|Virginia|Big South
+University of North Carolina at Asheville (UNC Asheville)|Bulldogs|North Carolina|Big South
+University of South Carolina Upstate (USC Upstate)|Spartans|South Carolina|Big South
+Winthrop University|Eagles|South Carolina|Big South
+University of Illinois Urbana–Champaign (Illinois)|Fighting Illini|Illinois|Big Ten
+Indiana University Bloomington (Indiana)|Hoosiers|Indiana|Big Ten
+University of Iowa|Hawkeyes|Iowa|Big Ten
+University of Maryland, College Park (Maryland)|Terrapins|Maryland|Big Ten
+University of Michigan|Wolverines|Michigan|Big Ten
+Michigan State University|Spartans|Michigan|Big Ten
+University of Minnesota|Golden Gophers|Minnesota|Big Ten
+University of Nebraska–Lincoln (Nebraska)|Cornhuskers|Nebraska|Big Ten
+Northwestern University|Wildcats|Illinois|Big Ten
+Ohio State University|Buckeyes|Ohio|Big Ten
+University of Oregon|Ducks|Oregon|Big Ten
+Pennsylvania State University (Penn State)|Nittany Lions|Pennsylvania|Big Ten
+Purdue University|Boilermakers|Indiana|Big Ten
+Rutgers University|Scarlet Knights|New Jersey|Big Ten
+University of California, Los Angeles (UCLA)|Bruins|California|Big Ten
+University of Southern California (USC/Southern Cal)|Trojans|California|Big Ten
+University of Washington|Huskies|Washington|Big Ten
+University of Arizona|Wildcats|Arizona|Big 12
+Arizona State University|Sun Devils|Arizona|Big 12
+Baylor University|Bears|Texas|Big 12
+Brigham Young University (BYU)|Cougars|Utah|Big 12
+University of Cincinnati|Bearcats|Ohio|Big 12
+University of Houston|Cougars|Texas|Big 12
+University of Kansas|Jayhawks|Kansas|Big 12
+Kansas State University|Wildcats|Kansas|Big 12
+Oklahoma State University|Cowboys|Oklahoma|Big 12
+Texas Christian University (TCU)|Horned Frogs|Texas|Big 12
+Texas Tech University|Red Raiders|Texas|Big 12
+University of Central Florida (UCF)|Knights|Florida|Big 12
+University of Utah|Utes|Utah|Big 12
+West Virginia University|Mountaineers|West Virginia|Big 12
+California Baptist University (Cal Baptist)|Lancers|California|Big West
+California Polytechnic State University (Cal Poly)|Mustangs|California|Big West
+California State University, Fullerton (Cal State Fullerton/CSUF)|Titans|California|Big West
+California State University, Northridge (CSUN/Cal State Northridge)|Matadors|California|Big West
+California State University, Bakersfield (CSU Bakersfield/Bakersfield/Cal State Bakersfield)|Roadrunners|California|Big West
+California State University, Long Beach (Long Beach State)|Dirtbags|California|Big West
+California State University, Sacramento (Sacramento State/Sac State)|Hornets|California|Big West
+University of California, Irvine (UC Irvine)|Anteaters|California|Big West
+University of California, Riverside (UC Riverside)|Highlanders|California|Big West
+University of California, San Diego (UC San Diego/UCSD)|Tritons|California|Big West
+University of California, Santa Barbara (UC Santa Barbara/UCSB)|Gauchos|California|Big West
+Utah Valley University|Wolverines|Utah|Big West
+Campbell University|Fighting Camels|North Carolina|Coastal Athletic
+College of Charleston (Charleston)|Cougars|South Carolina|Coastal Athletic
+Elon University|Phoenix|North Carolina|Coastal Athletic
+Hofstra University|Pride|New York|Coastal Athletic
+Monmouth University|Hawks|New Jersey|Coastal Athletic
+North Carolina Agricultural and Technical State University (North Carolina A&T)|Aggies|North Carolina|Coastal Athletic
+Northeastern University|Huskies|Massachusetts|Coastal Athletic
+Stony Brook University|Seawolves|New York|Coastal Athletic
+Towson University|Tigers|Maryland|Coastal Athletic
+University of North Carolina Wilmington (UNC Wilmington/UNCW)|Seahawks|North Carolina|Coastal Athletic
+College of William & Mary (William & Mary)|Tribe|Virginia|Coastal Athletic
+University of Delaware|Fightin' Blue Hens|Delaware|Conference USA
+Florida International University (FIU)|Panthers|Florida|Conference USA
+Jacksonville State University|Gamecocks|Alabama|Conference USA
+Kennesaw State University|Owls|Georgia|Conference USA
+Liberty University|Flames|Virginia|Conference USA
+Middle Tennessee State University (Middle Tennessee)|Blue Raiders|Tennessee|Conference USA
+Missouri State University|Bears|Missouri|Conference USA
+New Mexico State University|Aggies|New Mexico|Conference USA
+Sam Houston State University (Sam Houston)|Bearkats|Texas|Conference USA
+Western Kentucky University (WKU/Western Kentucky)|Hilltoppers|Kentucky|Conference USA
+University of Wisconsin–Milwaukee (Milwaukee)|Panthers|Wisconsin|Horizon League
+Northern Illinois University (NIU/Northern Illinois)|Huskies|Illinois|Horizon League
+Northern Kentucky University|Norse|Kentucky|Horizon League
+Oakland University|Golden Grizzlies|Michigan|Horizon League
+Wright State University|Raiders|Ohio|Horizon League
+Youngstown State University|Penguins|Ohio|Horizon League
+Brown University|Bears|Rhode Island|Ivy League
+Columbia University|Lions|New York|Ivy League
+Cornell University|Big Red|New York|Ivy League
+Dartmouth College|Big Green|New Hampshire|Ivy League
+Harvard University|Crimson|Massachusetts|Ivy League
+University of Pennsylvania (Penn)|Quakers|Pennsylvania|Ivy League
+Princeton University|Tigers|New Jersey|Ivy League
+Yale University|Bulldogs|Connecticut|Ivy League
+Canisius University|Golden Griffins|New York|Metro
+Fairfield University|Stags|Connecticut|Metro
+Iona University|Gaels|New York|Metro
+Manhattan University|Jaspers|New York|Metro
+Marist University|Red Foxes|New York|Metro
+Merrimack College|Warriors|Massachusetts|Metro
+Mount St. Mary's University|Mountaineers|Maryland|Metro
+Niagara University|Purple Eagles|New York|Metro
+Quinnipiac University|Bobcats|Connecticut|Metro
+Rider University|Broncs|New Jersey|Metro
+Sacred Heart University|Pioneers|Connecticut|Metro
+Saint Peter's University|Peacocks|New Jersey|Metro
+Siena University|Saints|New York|Metro
+University of Akron|Zips|Ohio|Mid-American
+Ball State University|Cardinals|Indiana|Mid-American
+Bowling Green State University (Bowling Green)|Falcons|Ohio|Mid-American
+Central Michigan University|Chippewas|Michigan|Mid-American
+Eastern Michigan University|Eagles|Michigan|Mid-American
+Kent State University|Golden Flashes|Ohio|Mid-American
+University of Massachusetts Amherst (UMass/Massachusetts)|Minutemen|Massachusetts|Mid-American
+Miami University (Miami (OH)/Miami of Ohio)|RedHawks|Ohio|Mid-American
+Ohio University|Bobcats|Ohio|Mid-American
+University of Toledo|Rockets|Ohio|Mid-American
+Western Michigan University|Broncos|Michigan|Mid-American
+Belmont University|Bruins|Tennessee|Missouri Valley
+Bradley University|Braves|Illinois|Missouri Valley
+University of Evansville|Purple Aces|Indiana|Missouri Valley
+Illinois State University|Redbirds|Illinois|Missouri Valley
+Indiana State University|Sycamores|Indiana|Missouri Valley
+Murray State University|Racers|Kentucky|Missouri Valley
+Southern Illinois University Carbondale (Southern Illinois/SIU)|Salukis|Illinois|Missouri Valley
+University of Illinois Chicago (UIC)|Flames|Illinois|Missouri Valley
+Valparaiso University|Beacons|Indiana|Missouri Valley
+United States Air Force Academy (Air Force)|Falcons|Colorado|Mountain West
+Grand Canyon University (GCU)|Antelopes|Arizona|Mountain West
+University of Hawaiʻi at Mānoa (Hawaii/Hawaiʻi)|Rainbow Warriors|Hawaii|Mountain West
+University of Nevada, Reno (Nevada)|Wolf Pack|Nevada|Mountain West
+University of New Mexico|Lobos|New Mexico|Mountain West
+San Jose State University|Spartans|California|Mountain West
+University of California, Davis (UC Davis)|Aggies|California|Mountain West
+University of Nevada, Las Vegas (UNLV)|Rebels|Nevada|Mountain West
+Utah Tech University|Trailblazers|Utah|Mountain West
+Central Connecticut State University (Central Connecticut/CCSU)|Blue Devils|Connecticut|NEC
+Coppin State University|Eagles|Maryland|NEC
+Delaware State University|Hornets|Delaware|NEC
+Fairleigh Dickinson University (FDU)|Knights|New Jersey|NEC
+Le Moyne College|Dolphins|New York|NEC
+Long Island University (LIU)|Sharks|New York|NEC
+University of Maryland Eastern Shore (UMES)|Hawks|Maryland|NEC
+Norfolk State University|Spartans|Virginia|NEC
+Stonehill College|Skyhawks|Massachusetts|NEC
+Wagner College|Seahawks|New York|NEC
+University of New Haven (New Haven)|Chargers|Connecticut|NEC
+Eastern Illinois University|Panthers|Illinois|Ohio Valley
+Lindenwood University|Lions|Missouri|Ohio Valley
+Morehead State University|Eagles|Kentucky|Ohio Valley
+Southeast Missouri State University (Southeast Missouri/SEMO)|Redhawks|Missouri|Ohio Valley
+Southern Illinois University Edwardsville (SIU Edwardsville/SIUE)|Cougars|Illinois|Ohio Valley
+University of Southern Indiana|Screaming Eagles|Indiana|Ohio Valley
+University of Tennessee at Martin (UT Martin)|Skyhawks|Tennessee|Ohio Valley
+Western Illinois University|Leathernecks|Illinois|Ohio Valley
+Dallas Baptist University (DBU)|Patriots|Texas|Pac-12
+California State University, Fresno (Fresno State)|Bulldogs|California|Pac-12
+Gonzaga University|Bulldogs|Washington|Pac-12
+Oregon State University|Beavers|Oregon|Pac-12
+San Diego State University|Aztecs|California|Pac-12
+Texas State University|Bobcats|Texas|Pac-12
+Washington State University|Cougars|Washington|Pac-12
+United States Military Academy (Army)|Black Knights|New York|Patriot League
+Bucknell University|Bison|Pennsylvania|Patriot League
+College of the Holy Cross (Holy Cross)|Crusaders|Massachusetts|Patriot League
+Lafayette College|Leopards|Pennsylvania|Patriot League
+Lehigh University|Mountain Hawks|Pennsylvania|Patriot League
+United States Naval Academy (Navy)|Midshipmen|Maryland|Patriot League
+University of Alabama|Crimson Tide|Alabama|Southeastern
+University of Arkansas|Razorbacks|Arkansas|Southeastern
+Auburn University|Tigers|Alabama|Southeastern
+University of Florida|Gators|Florida|Southeastern
+University of Georgia|Bulldogs|Georgia|Southeastern
+University of Kentucky|Wildcats|Kentucky|Southeastern
+Louisiana State University (LSU)|Tigers|Louisiana|Southeastern
+University of Mississippi (Ole Miss)|Rebels|Mississippi|Southeastern
+Mississippi State University|Bulldogs|Mississippi|Southeastern
+University of Missouri (Missouri/Mizzou)|Tigers|Missouri|Southeastern
+University of Oklahoma|Sooners|Oklahoma|Southeastern
+University of South Carolina|Gamecocks|South Carolina|Southeastern
+University of Tennessee|Volunteers|Tennessee|Southeastern
+University of Texas at Austin (Texas)|Longhorns|Texas|Southeastern
+Texas A&M University (Texas A&M/TAMU)|Aggies|Texas|Southeastern
+Vanderbilt University|Commodores|Tennessee|Southeastern
+The Citadel, The Military College of South Carolina (The Citadel/Citadel)|Bulldogs|South Carolina|Southern
+East Tennessee State University (ETSU/East Tennessee State)|Buccaneers|Tennessee|Southern
+Mercer University|Bears|Georgia|Southern
+Samford University|Bulldogs|Alabama|Southern
+Tennessee Tech University|Golden Eagles|Tennessee|Southern
+University of North Carolina at Greensboro (UNC Greensboro/UNCG)|Spartans|North Carolina|Southern
+Virginia Military Institute (VMI)|Keydets|Virginia|Southern
+Western Carolina University|Catamounts|North Carolina|Southern
+Wofford College|Terriers|South Carolina|Southern
+Houston Christian University|Huskies|Texas|Southland
+University of the Incarnate Word (Incarnate Word/UIW)|Cardinals|Texas|Southland
+Lamar University|Cardinals|Texas|Southland
+LSU New Orleans (New Orleans/UNO)|Privateers|Louisiana|Southland
+McNeese State University (McNeese)|Cowboys|Louisiana|Southland
+Nicholls State University (Nicholls)|Colonels|Louisiana|Southland
+Northwestern State University|Demons|Louisiana|Southland
+Southeastern Louisiana University|Lions|Louisiana|Southland
+Stephen F. Austin State University (Stephen F. Austin/SFA)|Lumberjacks|Texas|Southland
+Texas A&M University–Corpus Christi (Texas A&M-Corpus Christi)|Islanders|Texas|Southland
+University of Texas Rio Grande Valley (UTRGV)|Vaqueros|Texas|Southland
+Alabama A&M University|Bulldogs|Alabama|SWAC
+Alabama State University|Hornets|Alabama|SWAC
+Alcorn State University|Braves|Mississippi|SWAC
+University of Arkansas at Pine Bluff (Arkansas–Pine Bluff)|Golden Lions|Arkansas|SWAC
+Bethune–Cookman University|Wildcats|Florida|SWAC
+Florida Agricultural and Mechanical University (Florida A&M)|Rattlers|Florida|SWAC
+Grambling State University|Tigers|Louisiana|SWAC
+Jackson State University|Tigers|Mississippi|SWAC
+Mississippi Valley State University|Delta Devils|Mississippi|SWAC
+Prairie View A&M University|Panthers|Texas|SWAC
+Southern University|Jaguars|Louisiana|SWAC
+Texas Southern University|Tigers|Texas|SWAC
+North Dakota State University|Bison|North Dakota|The Summit
+University of Northern Colorado|Bears|Colorado|The Summit
+University of Nebraska Omaha (Omaha)|Mavericks|Nebraska|The Summit
+Oral Roberts University|Golden Eagles|Oklahoma|The Summit
+University of St. Thomas (St. Thomas)|Tommies|Minnesota|The Summit
+South Dakota State University|Jackrabbits|South Dakota|The Summit
+Appalachian State University|Mountaineers|North Carolina|Sun Belt
+Arkansas State University|Red Wolves|Arkansas|Sun Belt
+Coastal Carolina University|Chanticleers|South Carolina|Sun Belt
+Georgia Southern University|Eagles|Georgia|Sun Belt
+Georgia State University|Panthers|Georgia|Sun Belt
+James Madison University (JMU)|Dukes|Virginia|Sun Belt
+University of Louisiana at Lafayette (Louisiana)|Ragin' Cajuns|Louisiana|Sun Belt
+University of Louisiana at Monroe (Louisiana–Monroe/ULM)|Warhawks|Louisiana|Sun Belt
+Louisiana Tech University|Bulldogs|Louisiana|Sun Belt
+Marshall University|Thundering Herd|West Virginia|Sun Belt
+Old Dominion University|Monarchs|Virginia|Sun Belt
+University of South Alabama|Jaguars|Alabama|Sun Belt
+University of Southern Mississippi (Southern Miss)|Golden Eagles|Mississippi|Sun Belt
+Troy University|Trojans|Alabama|Sun Belt
+Abilene Christian University|Wildcats|Texas|United Athletic
+Austin Peay State University (Austin Peay)|Governors|Tennessee|United Athletic
+University of Central Arkansas|Bears|Arkansas|United Athletic
+Eastern Kentucky University (EKU)|Colonels|Kentucky|United Athletic
+University of Arkansas at Little Rock (Little Rock)|Trojans|Arkansas|United Athletic
+University of North Alabama|Lions|Alabama|United Athletic
+Tarleton State University|Texans|Texas|United Athletic
+University of Texas at Arlington (UT Arlington/UTA)|Mavericks|Texas|United Athletic
+University of West Georgia (West Georgia)|Wolves|Georgia|United Athletic
+Loyola Marymount University (LMU/Loyola Marymount)|Lions|California|West Coast
+University of the Pacific (Pacific)|Tigers|California|West Coast
+Pepperdine University|Waves|California|West Coast
+University of Portland|Pilots|Oregon|West Coast
+Saint Mary's College of California (Saint Mary's/SMC)|Gaels|California|West Coast
+University of San Diego|Toreros|California|West Coast
+University of San Francisco|Dons|California|West Coast
+Santa Clara University|Broncos|California|West Coast
+Seattle University (Seattle U/Seattle)|Redhawks|Washington|West Coast

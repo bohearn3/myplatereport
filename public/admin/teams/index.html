@@ -12,25 +12,37 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/admin.css">
 <style>
-/* Layout: one editable table of every Trackman team code: names and the conference whose games it hosts. */
+/* Layout: one editable table of every Trackman team code: names, the school it is, that school's conference by season, and an optional override. */
 html,body{height:auto;min-height:100%}
-main{width:100%;max-width:1200px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+main{width:100%;max-width:1320px;margin:0 auto;padding:22px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
 h1{font-family:var(--f-display);font-weight:800;font-size:1.9rem;text-transform:uppercase;margin:0 0 4px}
-.sub{color:var(--muted);margin:0 0 16px;font-size:.9rem;max-width:760px}
+.sub{color:var(--muted);margin:0 0 6px;font-size:.9rem;max-width:860px}
+details.about{font-size:.84rem;color:var(--muted);margin:0 0 16px;max-width:860px}
+details.about summary{cursor:pointer;color:var(--deep);font-weight:600}
+details.about ul{margin:6px 0 0;padding-left:18px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .toolbar input[type=search]{flex:1;min-width:200px}
 .toolbar select{width:auto}
 .tw{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
-table{border-collapse:collapse;width:100%;font-size:.88rem}
-th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
-th{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:middle}
+th{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--bg)}
 td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
-td input{padding:6px 8px!important;min-width:110px}
-td input.conf{min-width:120px;max-width:150px}
+td input{padding:6px 8px!important}
+td input.nm{min-width:110px}
+td input.fn{min-width:190px}
+td input.sch{min-width:170px}
+td input.ov{width:110px}
 tr.changed td{background:color-mix(in srgb,var(--powder) 10%,transparent)}
 tbody tr:last-child td{border-bottom:0}
-code{font-size:.84rem}
-.sug{border:1px dashed var(--powder);background:none;color:var(--deep);font:inherit;font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 9px;cursor:pointer}
+code{font-size:.82rem}
+.sug{border:1px dashed var(--powder);background:none;color:var(--deep);font:inherit;font-size:.76rem;font-weight:600;border-radius:999px;padding:2px 9px;cursor:pointer;margin-top:4px;display:inline-block}
+.conf{display:inline-flex;gap:5px;align-items:center}
+.conf b{font-weight:700}
+.div{font-size:.68rem;font-weight:700;border-radius:4px;padding:1px 5px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.moved b{color:var(--warn)}
+.none{color:var(--muted)}
+.ovwarn{display:block;font-size:.72rem;color:var(--warn)}
 .bar{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 0;background:var(--bg)}
 .bar .primary{width:auto;padding:10px 20px}
 .bar span{color:var(--muted);font-size:.86rem;margin-right:auto}
@@ -44,17 +56,23 @@ code{font-size:.84rem}
 <main>
   <div class="eyebrow">Master admin</div>
   <h1>Teams</h1>
-  <p class="sub">Set each team's conference so coordinators can look at only their own conference's games. A game belongs to the <b>home team's</b> conference. Suggestions come from the conference most of that team's home-game umpires are tagged with; check them before you save. Names here are used on reports and emails.</p>
+  <p class="sub">Link each Trackman team code to its school. A game belongs to the <b>home team's</b> conference for that season, which lets coordinators look at only their conference's games. Fall games count toward the next spring, so Fall 2026 scrimmages use 2027 conferences. Use an override only for a team the directory doesn't cover, like a D3 or NAIA school.</p>
+  <details class="about"><summary>About the school directory</summary>
+    <ul id="about"></ul>
+  </details>
   <div class="toolbar">
-    <input type="search" id="q" placeholder="Search team code or name" aria-label="Search teams">
-    <select id="show" aria-label="Show"><option value="">All teams</option><option value="none">No conference yet</option><option value="sug">Has a suggestion</option></select>
-    <button type="button" class="ghost" id="apply">Use all suggestions</button>
+    <input type="search" id="q" placeholder="Search code, name, school or conference" aria-label="Search teams">
+    <select id="show" aria-label="Show">
+      <option value="">All teams</option><option value="sug">Has a school match to review</option><option value="none">No school</option>
+      <option value="moved">Conference changes in 2027</option><option value="ov">Has an override</option><option value="home">Hosted games</option>
+    </select>
+    <button type="button" class="ghost" id="apply">Use all school matches</button>
   </div>
   <div class="tw"><table>
-    <thead><tr><th>Trackman code</th><th>Short name</th><th>Full name</th><th>Conference</th><th>Suggested</th><th class="r">Home games</th><th class="r">Away games</th></tr></thead>
-    <tbody id="rows"><tr><td colspan="7" class="hint">Loading…</td></tr></tbody>
+    <thead><tr><th>Trackman code</th><th>Short name</th><th>Full name</th><th>School</th><th id="h1">2026</th><th id="h2">2027</th><th>Override</th><th class="r">Home</th><th class="r">Away</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="9" class="hint">Loading…</td></tr></tbody>
   </table></div>
-  <datalist id="confs"></datalist>
+  <datalist id="schools"></datalist><datalist id="confs"></datalist>
   <div class="bar"><span id="count"></span><button type="button" class="primary" id="save" disabled>Save changes</button></div>
   <div id="msg"></div>
 </main>
@@ -63,36 +81,72 @@ code{font-size:.84rem}
 (function(){
 const $ = id => document.getElementById(id);
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let teams = [], orig = {};
-const key = t => JSON.stringify([t.short_name||'', t.full_name||'', t.conference||'']);
+let teams = [], orig = {}, schools = new Map(), seasons = [];
+const key = t => JSON.stringify([t.short_name||'', t.full_name||'', t.school||'', t.override||'']);
 const changed = () => teams.filter(t => key(t) !== orig[t.code]);
+const conf = (t, yr) => { const s = schools.get(t.school); return s ? s.seasons[yr] : null; };
 async function load(){
   const r = await fetch('/admin/api/teams/admin'); const j = await r.json();
-  if (!r.ok) { $('rows').innerHTML = `<tr><td colspan="7">${esc(j.error || 'Could not load teams.')}</td></tr>`; return; }
+  if (!r.ok) { $('rows').innerHTML = `<tr><td colspan="9">${esc(j.error || 'Could not load teams.')}</td></tr>`; return; }
   teams = j.teams; orig = Object.fromEntries(teams.map(t => [t.code, key(t)]));
+  schools = new Map(j.schools.map(s => [s.short, s])); seasons = j.seasons.map(String);
+  $('h1').textContent = seasons[0]; $('h2').textContent = seasons[1] || '';
+  $('schools').innerHTML = j.schools.map(s => `<option value="${esc(s.short)}">${esc(s.name)}${s.nickname ? ` ${esc(s.nickname)}` : ''} · ${esc(s.seasons[seasons[0]].div)} ${esc(s.seasons[seasons[0]].conf)}</option>`).join('');
   $('confs').innerHTML = j.conferences.map(c => `<option value="${esc(c)}">`).join('');
+  const d1 = j.schools.filter(s => s.seasons[seasons[0]].div === 'D1').length, d2 = j.schools.length - d1;
+  $('about').innerHTML = `<li>${j.schools.length} schools: ${d1} Division I and ${d2} Division II (${esc(seasons.join(' and '))} seasons).</li>
+    <li>D1 ${esc(seasons[1])}: Wikipedia's list of NCAA Division I baseball programs. D1 ${esc(seasons[0])}: the same list with the 22 schools that changed baseball conferences after the 2026 season moved back, plus the WAC's rename to the United Athletic Conference.</li>
+    <li>D2: NCSA's Division 2 baseball list, with 15 conference errors corrected and Azusa Pacific added. 2027 D2 conferences are copied from 2026 except West Florida (moving up to D1, ASUN).</li>
+    <li>D3, NAIA and junior colleges aren't in the directory. Give those teams an override if you want them counted for a conference.</li>`;
   draw();
+}
+function confCell(t, yr, other){
+  const c = conf(t, yr); if (!c) return '<span class="none">–</span>';
+  const moved = other && conf(t, other) && (conf(t, other).conf !== c.conf || conf(t, other).div !== c.div) && yr === seasons[1];
+  return `<span class="conf ${moved ? 'moved' : ''}"><span class="div">${esc(c.div)}</span><b>${esc(c.conf)}</b></span>`;
 }
 function draw(){
   const q = $('q').value.trim().toLowerCase(), show = $('show').value;
-  const list = teams.filter(t => (!q || [t.code, t.short_name, t.full_name, t.conference].some(v => String(v||'').toLowerCase().includes(q)))
-    && (show !== 'none' || !t.conference) && (show !== 'sug' || (t.suggest && t.suggest !== t.conference)));
-  $('rows').innerHTML = list.map(t => `<tr data-code="${esc(t.code)}" class="${key(t) !== orig[t.code] ? 'changed' : ''}">
+  const list = teams.filter(t => {
+    const c1 = conf(t, seasons[0]), c2 = conf(t, seasons[1]);
+    const hay = [t.code, t.short_name, t.full_name, t.school, t.override, c1?.conf, c2?.conf].join(' ').toLowerCase();
+    if (q && !hay.includes(q)) return false;
+    if (show === 'sug') return t.suggest && t.suggest !== t.school;
+    if (show === 'none') return !t.school;
+    if (show === 'moved') return c1 && c2 && (c1.conf !== c2.conf || c1.div !== c2.div);
+    if (show === 'ov') return !!t.override;
+    if (show === 'home') return t.home_games > 0;
+    return true;
+  });
+  $('rows').innerHTML = list.map(t => {
+    const dir = conf(t, seasons[0]);
+    return `<tr data-code="${esc(t.code)}" class="${key(t) !== orig[t.code] ? 'changed' : ''}">
     <td><code>${esc(t.code)}</code></td>
-    <td><input type="text" data-f="short_name" value="${esc(t.short_name||'')}" aria-label="Short name for ${esc(t.code)}"></td>
-    <td><input type="text" data-f="full_name" value="${esc(t.full_name||'')}" aria-label="Full name for ${esc(t.code)}" style="min-width:220px"></td>
-    <td><input type="text" class="conf" data-f="conference" list="confs" value="${esc(t.conference||'')}" placeholder="None" aria-label="Conference for ${esc(t.code)}"></td>
-    <td>${t.suggest && t.suggest !== t.conference ? `<button type="button" class="sug" data-sug="${esc(t.suggest)}">Use ${esc(t.suggest)}</button>` : ''}</td>
-    <td class="r">${t.home_games}</td><td class="r">${t.away_games}</td></tr>`).join('') || '<tr><td colspan="7" class="hint">No teams match.</td></tr>';
-  const c = changed().length, none = teams.filter(t => !t.conference).length;
-  $('count').textContent = `${teams.length} teams · ${none} without a conference${c ? ` · ${c} unsaved change${c===1?'':'s'}` : ''}`;
+    <td><input type="text" class="nm" data-f="short_name" value="${esc(t.short_name||'')}" aria-label="Short name for ${esc(t.code)}"></td>
+    <td><input type="text" class="fn" data-f="full_name" value="${esc(t.full_name||'')}" aria-label="Full name for ${esc(t.code)}"></td>
+    <td><input type="text" class="sch" data-f="school" list="schools" value="${esc(t.school||'')}" placeholder="Not in directory" aria-label="School for ${esc(t.code)}">
+      ${t.suggest && t.suggest !== t.school ? `<br><button type="button" class="sug" data-sug="${esc(t.suggest)}" title="Matched by ${esc(t.suggest_how)}">Use ${esc(t.suggest)}</button>` : ''}
+      ${t.school && !schools.has(t.school) ? '<span class="ovwarn">Not a school in the directory</span>' : ''}</td>
+    <td>${confCell(t, seasons[0])}</td><td>${confCell(t, seasons[1], seasons[0])}</td>
+    <td><input type="text" class="ov" data-f="override" list="confs" value="${esc(t.override||'')}" placeholder="None" aria-label="Conference override for ${esc(t.code)}">
+      ${t.override && dir ? `<span class="ovwarn">Replaces ${esc(dir.conf)} in every season</span>` : ''}</td>
+    <td class="r">${t.home_games}</td><td class="r">${t.away_games}</td></tr>`;
+  }).join('') || '<tr><td colspan="9" class="hint">No teams match.</td></tr>';
+  count();
+}
+function count(){
+  const c = changed().length, linked = teams.filter(t => t.school && schools.has(t.school)).length, sug = teams.filter(t => t.suggest && !t.school).length;
+  $('count').textContent = `${teams.length} teams · ${linked} linked to a school${sug ? ` · ${sug} matches to review` : ''}${c ? ` · ${c} unsaved change${c===1?'':'s'}` : ''}`;
   $('save').disabled = !c;
 }
-$('rows').addEventListener('input', e => { const tr = e.target.closest('tr[data-code]'); if (!tr) return; const t = teams.find(x => x.code === tr.dataset.code); t[e.target.dataset.f] = e.target.value; tr.classList.toggle('changed', key(t) !== orig[t.code]); const c = changed().length; $('save').disabled = !c; $('count').textContent = $('count').textContent.replace(/ · \d+ unsaved changes?$/, '') + (c ? ` · ${c} unsaved change${c===1?'':'s'}` : ''); });
-$('rows').addEventListener('click', e => { const b = e.target.closest('[data-sug]'); if (!b) return; const t = teams.find(x => x.code === b.closest('tr').dataset.code); t.conference = b.dataset.sug; draw(); });
-$('apply').addEventListener('click', () => { teams.forEach(t => { if (t.suggest && !t.conference) t.conference = t.suggest; }); draw(); });
+$('rows').addEventListener('input', e => { const tr = e.target.closest('tr[data-code]'); if (!tr) return; const t = teams.find(x => x.code === tr.dataset.code); t[e.target.dataset.f] = e.target.value.trim() || null; tr.classList.toggle('changed', key(t) !== orig[t.code]); count(); });
+$('rows').addEventListener('change', e => { if (e.target.dataset.f === 'school' || e.target.dataset.f === 'override') draw(); });
+$('rows').addEventListener('click', e => { const b = e.target.closest('[data-sug]'); if (!b) return; const t = teams.find(x => x.code === b.closest('tr').dataset.code); t.school = b.dataset.sug; draw(); });
+$('apply').addEventListener('click', () => { teams.forEach(t => { if (t.suggest && !t.school) t.school = t.suggest; }); draw(); });
 $('q').addEventListener('input', draw); $('show').addEventListener('change', draw);
 $('save').addEventListener('click', async () => {
+  const bad = changed().filter(t => t.school && !schools.has(t.school));
+  if (bad.length) { $('msg').innerHTML = `<div class="msg err">${esc(bad.map(t => t.code).join(', '))}: pick a school from the list, or clear it.</div>`; return; }
   $('save').disabled = true; $('msg').innerHTML = '';
   const r = await fetch('/admin/api/teams/admin', {method:'PUT', headers:{'content-type':'application/json'}, body: JSON.stringify({teams: changed()})});
   const j = await r.json().catch(()=>({}));

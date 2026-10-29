@@ -14,6 +14,7 @@ import '../public/js/engine.js';
 import '../public/js/staff-stats.js';
 import { reportEmail, codeEmail, inviteEmail, portalInviteEmail } from './email.js';
 import { buildDigest } from './digest.js';
+import { matchSchool, schoolSeason, seasonYear, SCHOOLS, CONFERENCES, SEASONS } from './schools.js';
 import { startLogin, verifyLogin, sessionUser, endSession, sessionCookie } from './auth.js';
 
 const E = globalThis.UmpEngine;
@@ -84,6 +85,19 @@ async function ensureSchema(db) {
     await db.prepare(`INSERT INTO meta (k, v) VALUES ('engagement_since', ?) ON CONFLICT(k) DO NOTHING`).bind(new Date().toISOString()).run();
     await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '6') ON CONFLICT(k) DO UPDATE SET v = '6'`).run();
   }
+  if (ver < 7) {
+    // School directory: link each Trackman team code to a school; teams.conference becomes an override.
+    try { await db.prepare(`ALTER TABLE teams ADD COLUMN school TEXT`).run(); } catch (e) { /* already there */ }
+    const { results } = await db.prepare('SELECT code, short_name, full_name, conference FROM teams').all();
+    for (const t of results) {
+      const m = matchSchool(t); if (!m) continue;
+      const dirConf = schoolSeason(m.short, 2026)?.conf;
+      // A conference set earlier that agrees with the directory is no longer needed as an override.
+      const keep = t.conference && dirConf && t.conference.toLowerCase() !== dirConf.toLowerCase() ? t.conference : null;
+      await db.prepare('UPDATE teams SET school = ?, conference = ? WHERE code = ?').bind(m.short, keep, t.code).run();
+    }
+    await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '7') ON CONFLICT(k) DO UPDATE SET v = '7'`).run();
+  }
   schemaReady = true;
 }
 
@@ -145,6 +159,11 @@ async function saveTeams(db, teams, t) {
     db.prepare('INSERT INTO teams (code, short_name, full_name, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(code) DO UPDATE SET short_name = excluded.short_name, full_name = excluded.full_name, updated_at = excluded.updated_at')
       .bind(code, String(v[0] || code).slice(0, 80), String(v[1] || code).slice(0, 120), t));
   if (stmts.length) await db.batch(stmts);
+  // Link teams that have no school yet to the directory.
+  for (const [code, v] of Object.entries(teams || {})) {
+    const m = matchSchool({ code, short_name: v[0], full_name: v[1] });
+    if (m) await db.prepare('UPDATE teams SET school = ? WHERE code = ? AND school IS NULL').bind(m.short, code).run();
+  }
 }
 // Same umpire + same Trackman game replaces the stored copy instead of duplicating it.
 async function saveGame(db, umpireId, g, fields, s, t, stats) {
@@ -390,12 +409,16 @@ async function dashboardData(env, a) {
     .map(u => ({ id: u.id, name: u.name, email: u.email, tags: parseTags(u.tags), active: u.active, portal: u.portal ? 1 : 0, last_login: u.last_login || null })).filter(u => inScope(a, u.tags));
   const ids = new Set(ups.map(u => u.id));
   const games = (await env.DB.prepare(`SELECT g.id, g.umpire_id, g.date, g.home, g.away, g.level, g.adj, g.raw, g.misses, g.edge, g.decisions, g.stats_json, g.created_at,
-      th.full_name AS home_name, ta.full_name AS away_name, th.conference AS home_conf
+      th.full_name AS home_name, ta.full_name AS away_name, th.conference AS home_override, th.school AS home_school
     FROM games g LEFT JOIN teams th ON th.code = g.home LEFT JOIN teams ta ON ta.code = g.away ORDER BY g.date, g.created_at`).all()).results.filter(g => ids.has(g.umpire_id));
   const reps = {};
   for (const r of (await env.DB.prepare('SELECT id, game_id, emailed_at, email_status, first_opened_at, open_count FROM reports WHERE revoked_at IS NULL ORDER BY created_at DESC').all()).results)
     if (!reps[r.game_id]) reps[r.game_id] = r;
   for (const g of games) {
+    // A game belongs to the home team's conference for that season (fall games count toward the next spring), unless overridden.
+    const ss = g.home_school ? schoolSeason(g.home_school, seasonYear(g.date)) : null;
+    g.home_conf = g.home_override || ss?.conf || null; g.home_div = ss?.div || null;
+    delete g.home_override; delete g.home_school;
     try { g.stats = g.stats_json ? JSON.parse(g.stats_json) : null; } catch { g.stats = null; }
     delete g.stats_json;
     const r = reps[g.id];
@@ -421,41 +444,39 @@ async function backfillStats(env, a) {
   return json({ ok: true, done: results.length, remaining: left });
 }
 
-/* ---------------- teams: names and conference (master) ---------------- */
+/* ---------------- teams: names, school and conference (master) ---------------- */
 async function teamsAdmin(env, a, rest, m, body) {
   if (!isMaster(a)) throw new HttpError(403, 'Only the site admin can edit teams.');
   const db = env.DB;
   if (rest === '' && m === 'GET') {
-    const teams = (await db.prepare('SELECT code, short_name, full_name, conference FROM teams ORDER BY code').all()).results;
-    const games = (await db.prepare('SELECT g.home, g.away, u.tags FROM games g JOIN umpires u ON u.id = g.umpire_id').all()).results;
-    const info = {};
-    const add = (code, k) => { (info[code] ||= { home: 0, away: 0, tags: {} })[k]++; };
-    for (const g of games) {
-      add(g.home, 'home'); if (g.away !== g.home) add(g.away, 'away');
-      for (const t of parseTags(g.tags)) { const i = info[g.home]; i.tags[t] = (i.tags[t] || 0) + 1; }
-    }
-    const codes = new Set([...teams.map(t => t.code), ...Object.keys(info)]);
+    const teams = (await db.prepare('SELECT code, short_name, full_name, conference, school FROM teams ORDER BY code').all()).results;
+    const games = (await db.prepare('SELECT home, away FROM games').all()).results;
+    const cnt = {};
+    for (const g of games) { (cnt[g.home] ||= { home: 0, away: 0 }).home++; if (g.away !== g.home) (cnt[g.away] ||= { home: 0, away: 0 }).away++; }
     const byCode = Object.fromEntries(teams.map(t => [t.code, t]));
-    const list = [...codes].filter(Boolean).sort().map(code => {
-      const t = byCode[code] || { code }, i = info[code] || { home: 0, away: 0, tags: {} };
-      const best = Object.entries(i.tags).sort((x, y) => y[1] - x[1])[0];
-      // Suggest the conference most often tagged on umpires who worked this team's home games (a clear majority only).
-      const total = Object.values(i.tags).reduce((x, y) => x + y, 0);
-      const suggest = best && i.home && best[1] / i.home >= 0.6 && best[1] >= total * 0.5 ? best[0] : null;
-      return { code, short_name: t.short_name || null, full_name: t.full_name || null, conference: t.conference || null, home_games: i.home, away_games: i.away, suggest };
+    const codes = [...new Set([...teams.map(t => t.code), ...Object.keys(cnt)])].filter(Boolean).sort();
+    const list = codes.map(code => {
+      const t = byCode[code] || { code }, c = cnt[code] || { home: 0, away: 0 };
+      const sug = t.school ? null : matchSchool(t);
+      return { code, short_name: t.short_name || null, full_name: t.full_name || null, school: t.school || null, override: t.conference || null,
+        suggest: sug ? sug.short : null, suggest_how: sug ? sug.how : null, home_games: c.home, away_games: c.away };
     });
-    return json({ teams: list, conferences: [...(await tagSpellings(env)).values()].sort() });
+    const schools = SCHOOLS.map(x => ({ short: x.short, name: x.name, nickname: x.nickname, state: x.state, seasons: x.seasons }));
+    const tags = [...(await tagSpellings(env)).values()];
+    return json({ teams: list, schools, seasons: SEASONS, conferences: [...new Set([...Object.keys(CONFERENCES), ...tags])].sort((x, y) => x.localeCompare(y)) });
   }
   if (rest === '' && m === 'PUT') {
     const rows = Array.isArray(body?.teams) ? body.teams.slice(0, 500) : [];
     const spell = await tagSpellings(env);
+    const valid = new Set(SCHOOLS.map(x => x.short));
     let n = 0;
     for (const r of rows) {
       const code = String(r.code || '').trim().slice(0, 40); if (!code) continue;
-      const conf = cleanTags([r.conference || ''])[0] || null;
-      await db.prepare(`INSERT INTO teams (code, short_name, full_name, conference, updated_at) VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(code) DO UPDATE SET short_name = excluded.short_name, full_name = excluded.full_name, conference = excluded.conference, updated_at = excluded.updated_at`)
-        .bind(code, String(r.short_name || '').trim().slice(0, 60) || null, String(r.full_name || '').trim().slice(0, 120) || null, conf ? canon([conf], spell)[0] : null, now()).run();
+      const school = r.school && valid.has(r.school) ? r.school : null;
+      const conf = cleanTags([r.override || ''])[0] || null;
+      await db.prepare(`INSERT INTO teams (code, short_name, full_name, conference, school, updated_at) VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(code) DO UPDATE SET short_name = excluded.short_name, full_name = excluded.full_name, conference = excluded.conference, school = excluded.school, updated_at = excluded.updated_at`)
+        .bind(code, String(r.short_name || '').trim().slice(0, 60) || null, String(r.full_name || '').trim().slice(0, 120) || null, conf ? canon([conf], spell)[0] : null, school, now()).run();
       n++;
     }
     await audit(db, a, 'edit_teams', { teams: n });

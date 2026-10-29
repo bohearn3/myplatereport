@@ -11,7 +11,8 @@ Hosted on Cloudflare Workers at **myplatereport.com**.
 | `public/index.html` | Home page |
 | `public/admin/` | Admin: send a report (upload CSV, team names, pick umpire from roster, preview, send) |
 | `public/admin/dashboard/` | Staff dashboard: headline numbers, weekly staff accuracy, spread of game scores, spotlights (improvers, top accuracy, edges, consistency, fewest misses, check-ins), latest games. Master at `/admin/dashboard/`, coordinators land on it at `/coord/` |
-| `public/admin/teams/` | Master admin: team names and each team's conference (a game belongs to the home team's conference) |
+| `public/admin/teams/` | Master admin: link Trackman team codes to schools; a game belongs to the home school's conference that season (fall counts toward next spring); overrides for D3/NAIA |
+| `src/data/schools.json`, `src/schools.js` | School directory (560 D1 + D2 schools, conference by season 2026–2027) and team-code matching. Rebuild with `python3 scripts/schools/build.py` |
 | `public/js/staff-stats.js` | Staff math shared by the dashboard and the weekly email |
 | `src/digest.js` | Weekly staff email (Wednesdays, Cloudflare cron in `wrangler.toml`) |
 | `public/admin/umpires/` | Umpire roster, roster CSV import, each umpire's trends, games and reports (also served at `/coord/umpires/` for coordinators) |

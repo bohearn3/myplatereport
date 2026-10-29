@@ -38,13 +38,22 @@ check('miss regions cover every miss', regSum === sum.missMap.total, `${regSum}/
 check('situations cover every called pitch', sum.situations.reduce((s, x) => s + x.n, 0) === d.j.games.reduce((s, g) => s + g.stats.all.n, 0));
 check('home/visitor split adds up to non-intrasquad misses', sum.fair.favorHome + sum.fair.favorAway === d.j.games.filter(g => !g.stats.fair.intra).reduce((s, g) => s + g.stats.all.scb + g.stats.all.bcs, 0));
 check('unranked list holds umpires under 3 games', sum.spot.unranked.every(x => x.n < 3) && sum.spot.top.every(x => x.n >= 3));
-// team conferences
+// team conferences: teams link to the school directory on import; game conference = home school's conference that season
+const SC = await import('../src/schools.js');
+check('fall games use next season conferences', SC.schoolSeason('Gonzaga', SC.seasonYear('2026-10-05')).conf === 'Pac-12' && SC.schoolSeason('Gonzaga', SC.seasonYear('2026-03-01')).conf === 'WCC');
+check('West Florida is D2 in 2026, D1 in 2027', SC.schoolSeason('West Florida', 2026).div === 'D2' && SC.schoolSeason('West Florida', 2027).conf === 'ASUN');
 r = await call('/admin/api/teams/admin', { headers: M });
-check('teams list with suggestions', r.status === 200 && r.j.teams.length > 5 && r.j.teams.some(t => t.suggest === 'WCC'), `${r.j.teams.filter(t => t.suggest).length} suggested`);
-const wccTeams = r.j.teams.filter(t => t.suggest === 'WCC');
-await call('/admin/api/teams/admin', { method: 'PUT', headers: M, body: { teams: wccTeams.slice(0, 1).map(t => ({ ...t, conference: 'pacwest' })).concat(wccTeams.slice(1).map(t => ({ ...t, conference: 'wcc' }))) } });
+const linked = r.j.teams.filter(t => t.school);
+check('imported teams are linked to schools automatically', r.status === 200 && linked.length >= 10 && linked.some(t => t.code === 'PAC_TIG' && t.school === 'Pacific'), `${linked.length} of ${r.j.teams.length}`);
 d = await call('/admin/api/dashboard', { headers: M });
-check('conference saved with the existing spelling', d.j.games.some(g => g.home_conf === 'WCC') && d.j.games.some(g => g.home_conf === 'PacWest'));
+check('2026 WCC home games get conference WCC from the directory', d.j.games.filter(g => g.home === 'PAC_TIG').every(g => g.home_conf === 'WCC' && g.home_div === 'D1'));
+const homeOf0 = d.j.games.find(g => g.umpire_id === id(names[0])).home;
+const someTeam = r.j.teams.find(t => t.code === homeOf0);
+await call('/admin/api/teams/admin', { method: 'PUT', headers: M, body: { teams: [{ ...someTeam, override: 'pacwest' }] } });
+d = await call('/admin/api/dashboard', { headers: M });
+check('override replaces the directory conference, with the existing spelling', d.j.games.filter(g => g.home === homeOf0).every(g => g.home_conf === 'PacWest'));
+r = await call('/admin/api/teams/admin', { method: 'PUT', headers: M, body: { teams: [{ code: 'ZZZ_TOP', school: 'Not A School' }] } });
+r = await call('/admin/api/teams/admin', { headers: M }); check('unknown school names are not saved', r.j.teams.find(t => t.code === 'ZZZ_TOP')?.school === null);
 const pw = SS.selectGames(d.j.games, d.j.umpires, { confs: ['PacWest'], mode: 'conference' });
 const pwAll = SS.selectGames(d.j.games, d.j.umpires, { confs: ['PacWest'], mode: 'umpire' });
 check('conference-games filter keeps only PacWest home games', pw.games.length > 0 && pw.games.every(g => g.home_conf === 'PacWest') && pwAll.games.length > pw.games.length, `${pw.games.length} of ${pwAll.games.length}`);
