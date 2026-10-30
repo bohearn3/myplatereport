@@ -705,6 +705,9 @@ async function api(request, env, a, sub) {
   const um = sub.match(/^\/umpires\/([A-Za-z0-9_-]+)$/);
   if (um && m === 'GET') return getUmpire(um[1], env, a);
   if (um && m === 'PUT') { need(a, 'full'); return updateUmpire(env, a, um[1], body); }
+  // Staff view of an umpire's portal: the same data the umpire sees, for any umpire in this person's scope.
+  const vm = sub.match(/^\/umpires\/([A-Za-z0-9_-]+)\/view(\/.*)$/);
+  if (vm) return portalApi(request, env, await umpireInScope(env, a, vm[1]), vm[2]);
   const pm = sub.match(/^\/umpires\/([A-Za-z0-9_-]+)\/portal$/);
   if (pm && m === 'POST') return setPortal(request, env, a, pm[1], body || {});
   const gm = sub.match(/^\/games\/([A-Za-z0-9_-]+)(\/move)?$/);
@@ -905,6 +908,8 @@ export default {
 
     // Coordinator pages reuse the admin page files; each page asks /coord/api/me what this person may do.
     if (p === '/coord' || p === '/coord/') return env.ASSETS.fetch(new Request(new URL('/admin/dashboard/', url), request));
+    // Staff view of one umpire's portal page (data comes from /admin/api or /coord/api, limited to that person's umpires).
+    if (/^\/(admin|coord)\/umpires\/[A-Za-z0-9_-]+\/view\/?$/.test(p)) return env.ASSETS.fetch(new Request(new URL('/portal-home', url), request));
     if (p === '/coord/umpires' || p === '/coord/umpires/') return env.ASSETS.fetch(new Request(new URL('/admin/umpires/', url), request));
     if (p === '/coord/send' || p === '/coord/send/') return env.ASSETS.fetch(new Request(new URL('/admin/', url), request));
     if (p === '/coord/login' || p === '/coord/login/') return env.ASSETS.fetch(new Request(new URL('/coord-login', url), request));

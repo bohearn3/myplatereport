@@ -15,6 +15,8 @@
 /* Layout: one column. My season (focus card, zone map + called zone, misses + counts, zone trend), then trends tiles/charts, then the list of games. */
 :root{--strike:#1D5E8F;--ballc:#8C98A5;--miss:#D1453B;--band:rgba(99,166,218,.22)}
 @media (prefers-color-scheme:dark){:root{--strike:#7FB9E6;--ballc:#6E7B88;--miss:#F0675C;--band:rgba(99,166,218,.20)}}
+.staffbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;background:color-mix(in srgb,var(--powder) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--powder) 45%,var(--line));border-radius:10px;padding:10px 14px;font-size:.88rem;margin:0 0 6px}
+.staffbar a{color:var(--deep);font-weight:700}
 .seasonbar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:28px 0 10px}
 .seasonbar h2{margin:0}
 .seasonbar select{width:auto}
@@ -102,6 +104,7 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
   <div class="eyebrow">Umpire portal</div>
   <h1 id="hello">My reports</h1>
   <p class="sub" id="sub">Loading your games…</p>
+  <div class="staffbar" id="staffbar" hidden></div>
   <div id="m"></div>
   <section id="season" hidden>
     <div class="seasonbar"><h2>My season</h2><label class="sr" for="season-pick" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Season</label><select id="season-pick"></select></div>
@@ -137,13 +140,17 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
 <script>
 (function(){
 const $ = id => document.getElementById(id);
+// Staff view: /admin/umpires/<id>/view or /coord/umpires/<id>/view shows that umpire's page with staff sign-in.
+const SV = location.pathname.match(/^\/(admin|coord)\/umpires\/([A-Za-z0-9_-]+)\/view\/?$/);
+const BASE = SV ? `/${SV[1]}/api/umpires/${encodeURIComponent(SV[2])}/view` : '/portal/api';
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const T = MPRTrends;
 const post = (u, b) => fetch(u, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(b||{})}).then(async r => ({ok:r.ok, status:r.status, j: await r.json().catch(()=>({}))}));
 
 async function load(){
-  const r = await fetch('/portal/api/me', {headers:{accept:'application/json'}});
-  if (r.status === 401) { location.replace('/portal/login?next=' + encodeURIComponent(location.pathname)); return; }
+  const r = await fetch(BASE + '/me', {headers:{accept:'application/json'}});
+  if (r.status === 401) { location.replace(SV ? (SV[1] === 'coord' ? '/coord/login?next=' + encodeURIComponent(location.pathname) : '/admin/') : '/portal/login?next=' + encodeURIComponent(location.pathname)); return; }
+  if (SV && r.status === 404) { $('sub').textContent = 'That umpire is not on your roster.'; return; }
   if (!r.ok) { $('sub').textContent = 'Your reports could not be loaded. Refresh to try again.'; return; }
   const d = await r.json();
   d.games.forEach(g => { names[g.id] = { home_name: g.home_name, away_name: g.away_name }; });
@@ -151,6 +158,12 @@ async function load(){
   $('hello').textContent = `${first}'s reports`;
   $('who').innerHTML = `<b>${esc(d.umpire.name)}</b>`;
   document.title = `${d.umpire.name} · MyPlateReport`;
+  if (SV) {
+    document.title = `${d.umpire.name} (staff view) · MyPlateReport`;
+    $('who').innerHTML = `Staff view of <b>${esc(d.umpire.name)}</b>`;
+    $('staffbar').hidden = false;
+    $('staffbar').innerHTML = `<span>You're seeing <b>${esc(first)}'s</b> dashboard exactly as ${esc(first)} sees it. Opening a report here doesn't count as ${esc(first)} opening it.</span><a href="/${SV[1]}/umpires/?u=${encodeURIComponent(SV[2])}">Back to umpires</a>`;
+  }
   const n = d.games.length;
   $('sub').textContent = n ? `${n} game${n===1?'':'s'} behind the plate, scored on the 2027 NCAA static zone. Your trends use only your own games.` : 'No games yet. Your reports will show up here after your next plate game.';
   const t = T.render(d.games, d.reports, {you:true});
@@ -166,7 +179,7 @@ async function load(){
 $('games').addEventListener('click', async e => {
   const b = e.target.closest('[data-open]'); if (!b) return;
   const w = window.open('', '_blank'); b.disabled = true;
-  const r = await post('/portal/api/games/' + b.dataset.open + '/open');
+  const r = await post(BASE + '/games/' + b.dataset.open + '/open');
   b.disabled = false;
   if (!r.ok) { if (w) w.close(); $('m').innerHTML = `<div class="msg err">${esc(r.j.error || 'That report could not be opened.')}</div>`; return; }
   const url = '/r/' + encodeURIComponent(r.j.reportId);
@@ -183,7 +196,7 @@ const addT = (t, b) => { if (b) { t.n += b.n; t.ok += b.ok; t.scb += b.scb; t.bc
 const acc = t => t && t.n ? t.ok / t.n : null;
 
 async function loadSeason(){
-  const r = await fetch('/portal/api/season', {headers:{accept:'application/json'}});
+  const r = await fetch(BASE + '/season', {headers:{accept:'application/json'}});
   if (!r.ok) return;
   SD = await r.json();
   SD.games.forEach(g => {
@@ -308,6 +321,7 @@ $('season-pick').addEventListener('change', drawSeason);
 const zm = v => { missesOnly = v; $('zm-all').setAttribute('aria-pressed', String(!v)); $('zm-miss').setAttribute('aria-pressed', String(v)); drawSeason(); };
 $('zm-all').addEventListener('click', () => zm(false)); $('zm-miss').addEventListener('click', () => zm(true));
 
+if (SV) { $('signout').textContent = 'Back to umpires'; $('signout').onclick = () => { location.href = `/${SV[1]}/umpires/?u=${encodeURIComponent(SV[2])}`; }; } else
 $('signout').addEventListener('click', async () => { try { await post('/portal/api/logout'); } catch(e){} location.href = '/portal/login'; });
 load().then(loadSeason);
 })();

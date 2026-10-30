@@ -137,6 +137,7 @@ button.danger{background:var(--bad)!important;color:#fff!important}
       <label class="check"><input type="checkbox" id="f-active" checked> Active (shows in the send list)</label>
       <div class="btns">
         <button type="submit" class="primary" id="f-save" style="width:auto;padding:10px 18px">Save</button>
+        <a class="ghost" id="f-view" href="#">View dashboard</a>
         <a class="ghost" id="f-send" href="/admin/">Send a report to this umpire</a>
       </div>
       <div id="f-msg"></div>
@@ -258,13 +259,14 @@ async function open(id){
     $('c-eyebrow').textContent = 'New umpire'; $('c-title').textContent = 'Add umpire';
     ['f-name','f-email','f-phone','f-notes'].forEach(k=>$(k).value=''); $('f-active').checked = true;
     const tf = $('tag-filter').value; cardTags = tf && tf !== '__none' ? [tf] : []; drawCardTags();
-    $('history').hidden = true; $('trends').hidden = true; $('portal').hidden = true; $('f-send').hidden = true; $('f-name').focus(); return;
+    $('history').hidden = true; $('trends').hidden = true; $('portal').hidden = true; $('f-send').hidden = true; $('f-view').hidden = true; $('f-name').focus(); return;
   }
   const d = await api(MPR.base + '/umpires/'+id);
   const u = d.umpire;
   $('c-eyebrow').textContent = `Umpire since ${fmtDate(u.created_at.slice(0,10))}`; $('c-title').textContent = u.name;
   $('f-name').value = u.name; $('f-email').value = u.email; $('f-phone').value = u.phone||''; $('f-notes').value = u.notes||''; $('f-active').checked = !!u.active;
   cardTags = [...(u.tags||[])]; drawCardTags();
+  $('f-view').hidden = false; $('f-view').href = `${MPR.coord ? '/coord' : '/admin'}/umpires/${encodeURIComponent(u.id)}/view`;
   $('f-send').hidden = !MPR.can(ME, 'send'); $('f-send').href = `${MPR.coord ? '/coord/send/' : '/admin/'}?umpire=${encodeURIComponent(u.id)}`;
   const byGame = {}; d.reports.forEach(r => { (byGame[r.game_id] ||= []).push(r); });
   drawTrends(d.games, byGame);

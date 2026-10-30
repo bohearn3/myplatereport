@@ -65,6 +65,11 @@ await call('/admin/api/coordinators', { method: 'POST', headers: M, body: { name
 const signIn = async e => { await call('/coord/api/login/start', { method: 'POST', body: { email: e } }); const c = mails.at(-1).subject.match(/(\d{6})/)[1]; const w = await worker.fetch(new Request(O + '/coord/api/login/verify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: e, code: c }) }), env); return { cookie: w.headers.get('set-cookie').split(';')[0], origin: O }; };
 const V = await signIn('v@x.com'), F = await signIn('f@x.com');
 r = await call(`/coord/api/umpires/${H}/portal`, { method: 'POST', headers: V, body: { on: true } }); check('view tier cannot turn on portal', r.status === 403);
+r = await call(`/coord/api/umpires/${B}/view/season`, { headers: V }); check('view-tier coordinator can open an umpire dashboard in their conference', r.status === 200 && r.j.games.length === 2);
+r = await call(`/coord/api/umpires/${B}/view/me`, { headers: V }); check('staff view returns the umpire page data', r.status === 200 && r.j.umpire.name === "Brooks O'Hearn");
+r = await call(`/coord/api/umpires/${B}/view/season`, { headers: F }); check('coordinator from another conference cannot', r.status === 404);
+r = await call(`/admin/api/umpires/${H}/view/me`, { headers: M }); check('master can view any umpire dashboard', r.status === 200);
+r = await call(`/coord/api/umpires/${B}/view/me`, { headers: U }); check('umpire cookie cannot use the staff view', r.status === 401);
 r = await call(`/coord/api/umpires/${H}/portal`, { method: 'POST', headers: F, body: { on: true } }); check('other-conference coordinator cannot', r.status === 404);
 r = await call(`/coord/api/umpires/${ids['Cory Monroe']}/portal`, { method: 'POST', headers: F, body: { on: true, invite: true } }); check('full tier can for own conference; reply-to is coordinator', r.status === 200 && mails.at(-1).reply_to === 'f@x.com');
 // turning off and email change sign out
