@@ -746,6 +746,34 @@ async function loginApi(request, env, kind, sub) {
 }
 
 /* ---------------- umpire portal API: only the signed-in umpire's own data ---------------- */
+// Staff = umpires sharing a conference with this umpire (all umpires if they have no conference). Their own games are left out.
+// Baselines are tallies per season (and 'all') from each game's stored detail stats: no names, no individual numbers.
+async function portalSeason(env, u) {
+  const db = env.DB;
+  const mine = (await db.prepare('SELECT id, date, home, away, level, adj, raw, misses, edge, decisions, fields_json, pitches_json, stats_json FROM games WHERE umpire_id = ? ORDER BY date, created_at').bind(u.id).all()).results;
+  const myConfs = new Set(parseTags(u.tags).map(ck));
+  const staffIds = new Set((await db.prepare('SELECT id, tags FROM umpires WHERE id <> ?').bind(u.id).all()).results
+    .filter(x => !myConfs.size || parseTags(x.tags).some(t => myConfs.has(ck(t)))).map(x => x.id));
+  const blank = () => ({ games: 0, adj: 0, edge: 0, edgeN: 0, misses: 0, all: { n: 0, ok: 0, scb: 0, bcs: 0 }, region: {}, count: {} });
+  const add = (t, b) => { if (!b) return; t.n += b.n || 0; t.ok += b.ok || 0; t.scb += b.scb || 0; t.bcs += b.bcs || 0; };
+  const base = {};
+  for (const g of (await db.prepare('SELECT umpire_id, date, adj, edge, misses, stats_json FROM games WHERE stats_json IS NOT NULL AND adj IS NOT NULL').all()).results) {
+    if (!staffIds.has(g.umpire_id)) continue;
+    let st; try { st = JSON.parse(g.stats_json); } catch { continue; }
+    for (const key of [SS.seasonOf(g.date), 'all']) {
+      const b = (base[key] ||= blank());
+      b.games++; b.adj += g.adj; b.misses += g.misses || 0; if (g.edge != null) { b.edge += g.edge; b.edgeN++; }
+      add(b.all, st.all);
+      for (const [k, v] of Object.entries(st.region || {})) add(b.region[k] ||= { n: 0, ok: 0, scb: 0, bcs: 0 }, v);
+      for (const [k, v] of Object.entries(st.count || {})) add(b.count[k] ||= { n: 0, ok: 0, scb: 0, bcs: 0 }, v);
+    }
+  }
+  for (const b of Object.values(base)) { b.adj /= b.games; b.misses /= b.games; b.edge = b.edgeN ? b.edge / b.edgeN : null; delete b.edgeN; }
+  const q = v => JSON.stringify(v);
+  const games = mine.map(g => `{"id":${q(g.id)},"date":${q(g.date)},"home":${q(g.home)},"away":${q(g.away)},"level":${q(g.level)},"adj":${q(g.adj)},"misses":${q(g.misses)},"edge":${q(g.edge)},"decisions":${q(g.decisions)},"stats":${g.stats_json || 'null'},"fields":${g.fields_json},"pitches":${g.pitches_json}}`);
+  const staffN = staffIds.size;
+  return new Response(`{"games":[${games.join(',')}],"staff":${q(staffN >= 3 ? base : {})},"staffSize":${staffN}}`, { headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+}
 async function portalApi(request, env, u, sub) {
   const db = env.DB, m = request.method;
   if (sub === '/me' && m === 'GET') {
@@ -758,6 +786,8 @@ async function portalApi(request, env, u, sub) {
       if (!reports[r.game_id]) reports[r.game_id] = r.id;
     return json({ umpire: { name: u.name, email: u.email, conferences: parseTags(u.tags) }, games, reports });
   }
+  // Season detail: every game's pitches (sent as stored, no parsing) plus staff baselines to compare against.
+  if (sub === '/season' && m === 'GET') return portalSeason(env, u);
   // A game with no live report link (e.g. a silent import whose link was turned off) gets a fresh one when the umpire opens it.
   const om = sub.match(/^\/games\/([A-Za-z0-9_-]+)\/open$/);
   if (om && m === 'POST') {

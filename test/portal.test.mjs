@@ -51,6 +51,10 @@ r = await call(`/portal/api/games/${noLink.id}/open`, { method: 'POST', headers:
 r = await call('/api/reports/' + r.j.reportId); check('that link opens his report', r.status === 200 && r.j.games.at(-1).umpire === "Brooks O'Hearn");
 const hg = (await call('/admin/api/umpires/' + H, { headers: M })).j.games[0].id;
 r = await call(`/portal/api/games/${hg}/open`, { method: 'POST', headers: U }); check("can't open another umpire's game", r.status === 404);
+r = await call('/portal/api/season', { headers: U });
+check('season data: only his own games, with pitches', r.status === 200 && r.j.games.length === 2 && r.j.games.every(g => Array.isArray(g.pitches) && Array.isArray(g.fields)));
+check('season data has no names of other umpires', !JSON.stringify(r.j).includes('Heath') && !JSON.stringify(r.j).includes('heath@x.com'));
+r = await call('/portal/api/season'); check('season data needs sign-in', r.status === 401);
 r = await call('/coord/api/umpires', { headers: U }); check('umpire cookie gives no coordinator access', r.status === 401);
 r = await call('/admin/api/umpires', { headers: U }); check('umpire cookie gives no admin access', r.status === 401);
 r = await call('/portal/api/me', { headers: { cookie: 'mpr_session=' + U.cookie.split('=')[1] } }); check('cookie names are not interchangeable', r.status === 401);

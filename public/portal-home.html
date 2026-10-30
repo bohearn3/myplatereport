@@ -12,7 +12,53 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/admin.css">
 <style>
-/* Layout: one column; trends (tiles + charts) above the list of games, each with its report. */
+/* Layout: one column. My season (focus card, zone map + called zone, misses + counts, zone trend), then trends tiles/charts, then the list of games. */
+:root{--strike:#1D5E8F;--ballc:#8C98A5;--miss:#D1453B;--band:rgba(99,166,218,.22)}
+@media (prefers-color-scheme:dark){:root{--strike:#7FB9E6;--ballc:#6E7B88;--miss:#F0675C;--band:rgba(99,166,218,.20)}}
+.seasonbar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:28px 0 10px}
+.seasonbar h2{margin:0}
+.seasonbar select{width:auto}
+.focus{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 16px;display:flex;gap:14px;align-items:flex-start}
+.focus .body{min-width:0;flex:1}
+.focus .ic{flex:none;width:42px;height:42px;border-radius:50%;background:color-mix(in srgb,var(--powder) 22%,transparent);display:grid;place-items:center;color:var(--deep)}
+.focus .k{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.focus h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:1.6rem;text-transform:uppercase;line-height:1.05}
+.focus p{margin:2px 0 0;font-size:.92rem}
+.focus .also{color:var(--muted);font-size:.84rem}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.panel .pt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.panel .pt b{font-size:.95rem}
+.panel .pt span{font-size:.76rem;color:var(--muted)}
+.panel .lead{margin:0 0 10px;font-size:.88rem}
+.panel .note{font-size:.78rem;color:var(--muted);margin:8px 0 0}
+.zsvg{width:100%;height:auto;display:block;max-height:420px}
+.zsvg text{font-family:var(--f-body);fill:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:.78rem;font-weight:600;border:0;background:var(--surface);color:var(--muted);padding:5px 10px;cursor:pointer;min-height:30px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.lg{display:flex;gap:12px;flex-wrap:wrap;font-size:.74rem;color:var(--muted);margin-top:6px}
+.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+.edges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
+.edges div{border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:center}
+.edges span{display:block;font-size:.72rem;color:var(--muted)}
+.edges b{font-family:var(--f-display);font-size:1.2rem}
+.rows{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:120px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:.85rem}
+.row .lab{font-weight:600}
+.row .lab small{display:block;font-weight:400;color:var(--muted);font-size:.74rem}
+.row .val{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row .val small{display:block;color:var(--muted);font-size:.74rem}
+.track{position:relative;height:16px}
+.track .bar{position:absolute;left:0;top:2px;height:12px;display:flex;gap:2px}
+.track .bar span{display:block;height:100%;border-radius:3px}
+.track .staff{position:absolute;top:-2px;bottom:-2px;width:0;border-left:2px dashed var(--muted)}
+.track .rail{position:absolute;left:0;right:0;top:7px;height:2px;background:var(--line);border-radius:2px}
+.track .dot{position:absolute;top:2px;width:12px;height:12px;border-radius:50%;background:var(--deep);box-shadow:0 0 0 2px var(--surface)}
+.trend svg{display:block;width:100%;height:auto;overflow:visible}
+.trend svg text{font-family:var(--f-body);fill:var(--muted);font-size:11px}
+.trend svg g.pt-g:hover circle{r:6}
+@media (max-width:860px){.two{grid-template-columns:1fr}.edges{grid-template-columns:repeat(2,minmax(0,1fr))}.row{grid-template-columns:96px minmax(0,1fr) auto}}
 html,body{height:auto;min-height:100%}
 main{width:100%;max-width:1040px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
 h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.9rem,5vw,2.6rem);text-transform:uppercase;margin:2px 0 4px;line-height:1}
@@ -57,6 +103,22 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
   <h1 id="hello">My reports</h1>
   <p class="sub" id="sub">Loading your games…</p>
   <div id="m"></div>
+  <section id="season" hidden>
+    <div class="seasonbar"><h2>My season</h2><label class="sr" for="season-pick" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Season</label><select id="season-pick"></select></div>
+    <div class="focus" id="focus"></div>
+    <div class="two">
+      <div class="panel"><div class="pt"><b>Season zone map</b><div class="seg" role="group" aria-label="Pitches shown"><button type="button" id="zm-all" aria-pressed="true">All calls</button><button type="button" id="zm-miss" aria-pressed="false">Misses only</button></div></div>
+        <div id="zonemap"></div>
+        <div class="lg"><span><i style="background:var(--strike)"></i>Called strike</span><span><i style="border:1.5px solid var(--ballc);box-sizing:border-box"></i>Called ball</span><span><i style="background:var(--miss)"></i>Missed strike call</span><span><i style="border:2px solid var(--miss);box-sizing:border-box"></i>Missed ball call</span><span>Shaded band: 1" buffer</span></div></div>
+      <div class="panel"><div class="pt"><b>Your called zone</b><span>Blue line: where you call strikes half the time · dashed: rulebook</span></div>
+        <div id="pzone"></div><div class="edges" id="edges"></div><p class="note" id="pznote"></p></div>
+    </div>
+    <div class="two">
+      <div class="panel" id="misses"></div>
+      <div class="panel" id="counts"></div>
+    </div>
+    <div class="panel trend" id="trend" style="margin-top:12px"></div>
+  </section>
   <section id="trends" hidden>
     <h2>My trends</h2>
     <div class="tiles" id="tiles"></div>
@@ -69,6 +131,9 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
   </section>
 </main>
 <script src="/assets/trends.js"></script>
+<script src="/js/engine.js"></script>
+<script src="/js/staff-stats.js"></script>
+<script src="/assets/zone-charts.js"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
@@ -81,6 +146,7 @@ async function load(){
   if (r.status === 401) { location.replace('/portal/login?next=' + encodeURIComponent(location.pathname)); return; }
   if (!r.ok) { $('sub').textContent = 'Your reports could not be loaded. Refresh to try again.'; return; }
   const d = await r.json();
+  d.games.forEach(g => { names[g.id] = { home_name: g.home_name, away_name: g.away_name }; });
   const first = d.umpire.name.split(' ')[0];
   $('hello').textContent = `${first}'s reports`;
   $('who').innerHTML = `<b>${esc(d.umpire.name)}</b>`;
@@ -107,8 +173,143 @@ $('games').addEventListener('click', async e => {
   if (w) w.location = url; else location.href = url;
   load();
 });
+/* ---------------- My season ---------------- */
+const E = UmpEngine, Z = E.ZONES.nsi2027, S = StaffStats;
+const pct = v => v == null ? '–' : (v*100).toFixed(1) + '%';
+const inch = v => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}"`;
+let SD = null, names = {}, missesOnly = false;
+const blank = () => ({ n: 0, ok: 0, scb: 0, bcs: 0 });
+const addT = (t, b) => { if (b) { t.n += b.n; t.ok += b.ok; t.scb += b.scb; t.bcs += b.bcs; } return t; };
+const acc = t => t && t.n ? t.ok / t.n : null;
+
+async function loadSeason(){
+  const r = await fetch('/portal/api/season', {headers:{accept:'application/json'}});
+  if (!r.ok) return;
+  SD = await r.json();
+  SD.games.forEach(g => {
+    const A = E.analyzeGame({ Date: g.date, HomeTeam: g.home, AwayTeam: g.away, pitches: g.pitches }, g.fields, Z);
+    g.ps = A.pitches; g.st = E.gameStats(A); g.season = S.seasonOf(g.date);
+    g.title = T.title({ ...g, ...(names[g.id] || {}) }); delete g.pitches;
+  });
+  if (!SD.games.length) return;
+  const seasons = [...new Set(SD.games.map(g => g.season))].sort((a,b) => S.seasonRank(b) - S.seasonRank(a));
+  const cnt = k => SD.games.filter(g => g.season === k).length;
+  $('season-pick').innerHTML = seasons.map(k => `<option value="${esc(k)}">${esc(k)} (${cnt(k)} game${cnt(k)===1?'':'s'})</option>`).join('') + `<option value="all">All games (${SD.games.length})</option>`;
+  $('season-pick').value = seasons.find(k => cnt(k) >= 3) || (SD.games.length >= 3 ? 'all' : seasons[0]);
+  $('season').hidden = false;
+  drawSeason();
+}
+
+function drawSeason(){
+  const key = $('season-pick').value;
+  const gs = SD.games.filter(g => key === 'all' || g.season === key);
+  const staff = SD.staff[key] && SD.staff[key].games >= 5 ? SD.staff[key] : null;
+  const ps = gs.flatMap(g => g.ps);
+  const own = { all: blank(), zone: { edge: blank() }, region: {}, count: {} };
+  gs.forEach(g => { addT(own.all, g.st.all); addT(own.zone.edge, g.st.zone.edge);
+    S.REGIONS.forEach(([k]) => addT(own.region[k] ||= blank(), g.st.region[k])); S.SITUATIONS.forEach(([k]) => addT(own.count[k] ||= blank(), g.st.count[k])); });
+  const pz = E.perceived(ps, Z, { step: 1 });
+  drawFocus(gs, own, staff, pz);
+  $('zonemap').innerHTML = ZoneCharts.zone(ps, Z, { missesOnly, r: ps.length > 1500 ? .9 : 1.2 });
+  $('pzone').innerHTML = ZoneCharts.perceived(pz, Z);
+  const word = (v, a, b) => Math.abs(v) < .3 ? 'on the line' : v > 0 ? a : b;
+  $('edges').innerHTML = [['Top', pz.delta.top, 'called high', 'tight up top'], ['Bottom', pz.delta.bot, 'called low', 'tight at knees'],
+    ['3B side', pz.delta.left, 'wide', 'tight'], ['1B side', pz.delta.right, 'wide', 'tight']]
+    .map(([k, v, a, b]) => `<div><span>${k}</span><b>${inch(v)}</b><span>${word(v, a, b)}</span></div>`).join('');
+  $('pznote').textContent = `Zone size ${Math.round(pz.areaRatio*100)}% of the rulebook zone, from ${pz.n} calls in ${gs.length} game${gs.length===1?'':'s'}. + means you call strikes beyond that edge; − means you call it tight.`;
+  drawMisses(gs, own, staff);
+  drawCounts(own, staff);
+  drawTrend(gs);
+}
+
+// Focus: the area where you trail the staff the most (calls nearest each zone edge, each count, edge pitches), with your zone shape as context.
+function drawFocus(gs, own, staff, pz){
+  const cands = [];
+  const rl = { Top: 'the top of the zone', Bottom: 'the bottom of the zone', Inside: 'the inside edge', Outside: 'the outside edge' };
+  if (staff) {
+    S.REGIONS.forEach(([k, label]) => { const o = own.region[k], s = staff.region[k]; if (o && s && o.n >= 30 && s.n >= 100) cands.push({ kind: 'region', k, label, title: label, o: acc(o), s: acc(s), t: o, n: o.n }); });
+    S.SITUATIONS.forEach(([k, label]) => { const o = own.count[k], s = staff.count[k]; if (o && s && o.n >= 25 && s.n >= 100) cands.push({ kind: 'count', k, label, title: label, o: acc(o), s: acc(s), t: o, n: o.n }); });
+    const oe = acc(own.zone.edge); if (oe != null && staff.edge != null && own.zone.edge.n >= 30) cands.push({ kind: 'edge', title: 'Edge pitches', label: 'pitches within 2" of the edge', o: oe, s: staff.edge, t: own.zone.edge, n: own.zone.edge.n });
+  }
+  cands.forEach(c => c.gap = c.s - c.o);
+  const worst = cands.filter(c => c.gap >= .015).sort((a, b) => b.gap - a.gap)[0];
+  const best = cands.filter(c => c.gap <= -.015).sort((a, b) => a.gap - b.gap)[0];
+  const kindOf = t => t.scb + t.bcs === 0 ? '' : t.scb >= t.bcs ? ' Most of your misses there are strikes called balls.' : ' Most of your misses there are balls called strikes.';
+  const shape = c => { const d = c && c.kind === 'region' ? (c.k === 'Top' ? pz.delta.top : c.k === 'Bottom' ? pz.delta.bot : null) : null;
+    return d != null && Math.abs(d) >= .8 ? ` Your called zone runs ${d > 0 ? `${inch(d)} beyond` : `${inch(d)} inside`} that edge.` : ''; };
+  const ic = '<span class="ic" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg></span>';
+  let html;
+  if (worst) {
+    html = `${ic}<div class="body"><div class="k">Focus for your next game</div><h3>${esc(worst.title)}</h3>
+      <p>You got <b>${pct(worst.o)}</b> of ${worst.kind === 'count' ? `${esc(worst.label.toLowerCase())} calls` : worst.kind === 'region' ? `calls nearest ${rl[worst.k]}` : 'edge pitches'} right (${worst.n} calls), compared with <b>${pct(worst.s)}</b> for umpires in your conferences.${kindOf(worst.t)}${shape(worst)}</p>
+      ${best ? `<p class="also">Strength: ${esc(best.title.toLowerCase())}, ${pct(best.o)} vs. ${pct(best.s)} for the staff.</p>` : ''}</div>`;
+  } else {
+    const ds = [['the top', pz.delta.top], ['the bottom', pz.delta.bot], ['the 3B side', pz.delta.left], ['the 1B side', pz.delta.right]].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0];
+    const zoneTip = pz.n >= 150 && Math.abs(ds[1]) >= .8 ? `Your biggest zone difference is at ${ds[0]} (${inch(ds[1])}${ds[1] > 0 ? ', called wide' : ', called tight'}).` : 'Your called zone is close to the rulebook on every edge.';
+    html = `${ic}<div class="body"><div class="k">Focus for your next game</div><h3>${staff && cands.length ? 'Keep it going' : 'Your zone shape'}</h3>
+      <p>${staff && cands.length ? `You're at or above the staff in every area we track. ` : staff ? '' : 'Staff comparisons show up once there are enough games from umpires in your conferences. '}${zoneTip}</p>
+      ${best ? `<p class="also">Best area: ${esc(best.title.toLowerCase())}, ${pct(best.o)} vs. ${pct(best.s)} for the staff.</p>` : ''}</div>`;
+  }
+  $('focus').innerHTML = html;
+}
+
+function drawMisses(gs, own, staff){
+  const n = gs.length, tot = own.all.scb + own.all.bcs;
+  const rows = S.REGIONS.map(([k, label]) => { const t = own.region[k] || blank(), m = t.scb + t.bcs, st = staff && staff.region[k];
+    return { k, label, t, m, per: m / n, share: tot ? m / tot : 0, sper: st ? (st.scb + st.bcs) / staff.games : null }; });
+  const mx = Math.max(...rows.map(r => Math.max(r.per, r.sper || 0)), .1);
+  const top = [...rows].sort((a, b) => b.m - a.m)[0];
+  $('misses').innerHTML = `<div class="pt"><b>Where your misses happen</b><span>${tot} missed calls in ${n} game${n===1?'':'s'} · inside/outside are relative to the batter</span></div>
+    ${tot ? `<p class="lead">Most of your misses are at <b>the ${esc(top.label.toLowerCase())}</b> (${Math.round(top.share*100)}%), mostly ${top.t.scb >= top.t.bcs ? 'strikes called balls' : 'balls called strikes'}.</p>` : '<p class="lead">No missed calls in this selection.</p>'}
+    <div class="lg" style="margin:0 0 10px"><span><i style="background:var(--strike);border-radius:3px"></i>Strikes called balls (${own.all.scb})</span><span><i style="background:var(--warn);border-radius:3px"></i>Balls called strikes (${own.all.bcs})</span>${staff ? '<span>Dashed line: staff average per game</span>' : ''}</div>
+    <div class="rows">${rows.map(r => `<div class="row" title="${esc(`${r.label}: ${r.m} misses (${r.t.scb} strikes called balls, ${r.t.bcs} balls called strikes)${r.sper != null ? ` · staff ${r.sper.toFixed(1)} per game` : ''}`)}">
+      <div class="lab">${esc(r.label)}<small>${pct(acc(r.t))} of ${r.t.n} calls right</small></div>
+      <div class="track"><div class="bar" style="width:${(r.per / mx * 100).toFixed(1)}%">${r.t.scb ? `<span style="flex:${r.t.scb};background:var(--strike)"></span>` : ''}${r.t.bcs ? `<span style="flex:${r.t.bcs};background:var(--warn)"></span>` : ''}</div>
+        ${r.sper != null ? `<span class="staff" style="left:${(r.sper / mx * 100).toFixed(1)}%"></span>` : ''}</div>
+      <div class="val">${r.per.toFixed(1)} / game${r.sper != null ? `<small>staff ${r.sper.toFixed(1)}</small>` : ''}</div></div>`).join('')}</div>`;
+}
+
+function drawCounts(own, staff){
+  const rows = S.SITUATIONS.map(([k, label]) => ({ k, label, t: own.count[k] || blank(), s: staff && staff.count[k] ? acc(staff.count[k]) : null })).filter(r => r.t.n);
+  if (!rows.length) { $('counts').innerHTML = '<div class="pt"><b>Accuracy by count</b></div><p class="lead">No called pitches yet.</p>'; return; }
+  const vals = rows.flatMap(r => [acc(r.t), r.s]).filter(v => v != null);
+  const lo = Math.max(0, Math.floor((Math.min(...vals) - .02) * 50) / 50), x = v => ((v - lo) / (1 - lo) * 100).toFixed(1);
+  const two = addT(addT(blank(), own.count.two), own.count.full);
+  $('counts').innerHTML = `<div class="pt"><b>Accuracy by count</b><span>Your calls${staff ? ' · dashed line: staff' : ''}</span></div>
+    <p class="lead">With two strikes you got <b>${pct(acc(two))}</b> of ${two.n} calls right${staff ? ` (staff ${pct(acc(addT(addT(blank(), staff.count.two), staff.count.full)))})` : ''}.</p>
+    <div class="rows">${rows.map(r => `<div class="row" title="${esc(`${r.label}: ${pct(acc(r.t))} of ${r.t.n} calls right${r.s != null ? ` · staff ${pct(r.s)}` : ''}`)}">
+      <div class="lab">${esc(r.label)}<small>${r.t.n} calls</small></div>
+      <div class="track" aria-hidden="true"><span class="rail"></span>${r.s != null ? `<span class="staff" style="left:${x(r.s)}%"></span>` : ''}<span class="dot" style="left:calc(${x(acc(r.t))}% - 6px)"></span></div>
+      <div class="val"><b>${pct(acc(r.t))}</b>${r.s != null ? `<small>staff ${pct(r.s)}</small>` : ''}</div></div>`).join('')}</div>
+    <p class="note">Scale ${Math.round(lo*100)}–100%. Pitcher ahead: more strikes than balls. Hitter ahead: more balls than strikes.</p>`;
+}
+
+// Zone size by game (perceived zone area vs. the rulebook), so umpires see whether their zone is growing, shrinking or steady.
+function drawTrend(gs){
+  const pts = gs.map(g => { const n = g.ps.filter(p => p.dec && p.has).length; if (n < 60) return null; const pz = E.perceived(g.ps, Z, { step: 1 }); return { g, v: pz.areaRatio, d: pz.delta, n }; }).filter(Boolean);
+  if (pts.length < 2) { $('trend').innerHTML = '<div class="pt"><b>Your zone over time</b></div><p class="lead">Your zone trend shows up after two or more games with at least 60 called pitches.</p>'; return; }
+  const W = 980, H = 220, L = 44, R = 14, Tp = 18, B = 26;
+  const vals = pts.map(p => p.v).concat(1); let lo = Math.min(...vals) - .03, hi = Math.max(...vals) + .03;
+  const n = pts.length, x = i => L + i * (W - L - R) / (n - 1), y = v => Tp + (hi - v) * (H - Tp - B) / (hi - lo);
+  let s = '';
+  for (let k = 0; k <= 4; k++) { const v = lo + (hi - lo) * k / 4, yy = y(v).toFixed(1); s += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--line)"/><text x="${L-6}" y="${(+yy+4).toFixed(1)}" text-anchor="end">${Math.round(v*100)}%</text>`; }
+  s += `<line x1="${L}" x2="${W-R}" y1="${y(1).toFixed(1)}" y2="${y(1).toFixed(1)}" stroke="var(--ink)" stroke-dasharray="5 4"/><text x="${W-R}" y="${(y(1)-5).toFixed(1)}" text-anchor="end">Rulebook size</text>`;
+  let lastM = ''; pts.forEach((p, i) => { const mo = new Date(p.g.date + 'T12:00').toLocaleDateString('en-US', { month: 'short' }); if (mo !== lastM) { lastM = mo; s += `<text x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle">${mo}</text>`; } });
+  s += `<path d="${pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join('')}" fill="none" stroke="var(--deep)" stroke-width="2" stroke-linejoin="round"/>`;
+  pts.forEach((p, i) => { const tip = `${T.fmtDate(p.g.date)} · ${p.g.title}: zone ${Math.round(p.v*100)}% of rulebook · top ${inch(p.d.top)}, bottom ${inch(p.d.bot)}, 3B ${inch(p.d.left)}, 1B ${inch(p.d.right)}`;
+    s += `<g class="pt-g"><title>${esc(tip)}</title><rect x="${(x(i)-12).toFixed(1)}" y="${Tp}" width="24" height="${H-Tp-B}" fill="transparent"/><circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="4.5" fill="var(--deep)" stroke="var(--surface)" stroke-width="2"/></g>`; });
+  const k = Math.min(3, Math.floor(n / 2)), early = S.avg(pts.slice(0, k).map(p => p.v)), late = S.avg(pts.slice(-k).map(p => p.v)), d = late - early;
+  const lead = Math.abs(d) < .03 ? `Your zone size has been steady, around ${Math.round(late*100)}% of the rulebook zone.`
+    : `Your zone has ${d > 0 ? 'grown' : 'gotten smaller'}: ${Math.round(early*100)}% of the rulebook in your first ${k} games, ${Math.round(late*100)}% in your last ${k}.`;
+  $('trend').innerHTML = `<div class="pt"><b>Your zone over time</b><span>Called zone size each game, compared with the rulebook zone · hover a dot for each edge</span></div><p class="lead">${lead}</p>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Called zone size by game, ${n} games">${s}</svg>`;
+}
+$('season-pick').addEventListener('change', drawSeason);
+const zm = v => { missesOnly = v; $('zm-all').setAttribute('aria-pressed', String(!v)); $('zm-miss').setAttribute('aria-pressed', String(v)); drawSeason(); };
+$('zm-all').addEventListener('click', () => zm(false)); $('zm-miss').addEventListener('click', () => zm(true));
+
 $('signout').addEventListener('click', async () => { try { await post('/portal/api/logout'); } catch(e){} location.href = '/portal/login'; });
-load();
+load().then(loadSeason);
 })();
 </script>
 </body>
