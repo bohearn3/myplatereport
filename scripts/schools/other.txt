@@ -1,0 +1,28 @@
+# Schools outside D1/D2 that appear in our Trackman files, plus their full conferences where useful.
+# School | Short | Nickname | State | Division | Conference (same for 2026 and 2027)
+# SCIAC (Southern California Intercollegiate Athletic Conference), D3
+Pomona College / Pitzer College|Pomona-Pitzer|Sagehens|California|D3|SCIAC
+Claremont McKenna, Harvey Mudd and Scripps Colleges|Claremont-Mudd-Scripps|Stags|California|D3|SCIAC
+California Institute of Technology|Caltech|Beavers|California|D3|SCIAC
+California Lutheran University|Cal Lutheran|Kingsmen|California|D3|SCIAC
+Chapman University|Chapman|Panthers|California|D3|SCIAC
+University of La Verne|La Verne|Leopards|California|D3|SCIAC
+Occidental College|Occidental|Tigers|California|D3|SCIAC
+University of Redlands|Redlands|Bulldogs|California|D3|SCIAC
+Whittier College|Whittier|Poets|California|D3|SCIAC
+# NWC (Northwest Conference), D3
+George Fox University|George Fox|Bruins|Oregon|D3|NWC
+University of Puget Sound|Puget Sound|Loggers|Washington|D3|NWC
+Whitman College|Whitman|Blues|Washington|D3|NWC
+Whitworth University|Whitworth|Pirates|Washington|D3|NWC
+Linfield University|Linfield|Wildcats|Oregon|D3|NWC
+Pacific University (Oregon)|Pacific (OR)|Boxers|Oregon|D3|NWC
+Lewis & Clark College|Lewis & Clark|Pioneers|Oregon|D3|NWC
+Willamette University|Willamette|Bearcats|Oregon|D3|NWC
+# Other D3 opponents seen in 2026
+Kalamazoo College|Kalamazoo|Hornets|Michigan|D3|MIAA (Michigan)
+University of Chicago|Chicago|Maroons|Illinois|D3|UAA
+Bridgewater College|Bridgewater (VA)|Eagles|Virginia|D3|ODAC
+# Junior college and international
+Sierra College|Sierra College|Wolverines|California|JUCO|Big 8 (CCCAA)
+Waseda University|Waseda|Big Bears|Japan|International|Exhibition

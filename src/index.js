@@ -14,7 +14,7 @@ import '../public/js/engine.js';
 import '../public/js/staff-stats.js';
 import { reportEmail, codeEmail, inviteEmail, portalInviteEmail } from './email.js';
 import { buildDigest } from './digest.js';
-import { matchSchool, schoolSeason, seasonYear, SCHOOLS, CONFERENCES, SEASONS } from './schools.js';
+import { matchSchool, autoLink, schoolSeason, seasonYear, SCHOOLS, CONFERENCES, SEASONS } from './schools.js';
 import { startLogin, verifyLogin, sessionUser, endSession, sessionCookie } from './auth.js';
 
 const E = globalThis.UmpEngine;
@@ -90,13 +90,21 @@ async function ensureSchema(db) {
     try { await db.prepare(`ALTER TABLE teams ADD COLUMN school TEXT`).run(); } catch (e) { /* already there */ }
     const { results } = await db.prepare('SELECT code, short_name, full_name, conference FROM teams').all();
     for (const t of results) {
-      const m = matchSchool(t); if (!m) continue;
+      const m = matchSchool(t); if (!autoLink(m)) continue;
       const dirConf = schoolSeason(m.short, 2026)?.conf;
       // A conference set earlier that agrees with the directory is no longer needed as an override.
       const keep = t.conference && dirConf && t.conference.toLowerCase() !== dirConf.toLowerCase() ? t.conference : null;
       await db.prepare('UPDATE teams SET school = ?, conference = ? WHERE code = ?').bind(m.short, keep, t.code).run();
     }
     await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '7') ON CONFLICT(k) DO UPDATE SET v = '7'`).run();
+  }
+  if (ver < 8) {
+    // Every team code in a game gets a teams row, and confirmed matches (D3/JUCO/odd Trackman codes) link automatically.
+    const codes = (await db.prepare('SELECT home AS c FROM games UNION SELECT away FROM games').all()).results.map(r => r.c).filter(Boolean);
+    for (const c of codes) await linkTeam(db, c);
+    const { results } = await db.prepare('SELECT code FROM teams WHERE school IS NULL').all();
+    for (const t of results) await linkTeam(db, t.code);
+    await db.prepare(`INSERT INTO meta (k, v) VALUES ('schema', '8') ON CONFLICT(k) DO UPDATE SET v = '8'`).run();
   }
   schemaReady = true;
 }
@@ -106,8 +114,10 @@ async function ensureSchema(db) {
 const lc = s => String(s || '').toLowerCase();
 const isMaster = a => a.kind === 'master';
 const tierAtLeast = (a, t) => isMaster(a) || TIERS.indexOf(a.tier) >= TIERS.indexOf(t);
-const confSet = a => new Set((a.conferences || []).map(lc));
-const inScope = (a, tags) => isMaster(a) || tags.some(t => confSet(a).has(lc(t)));
+// Conference names compare by SS.confKey, so 'MWC', 'Mountain West' and 'Mountain West Conference' are the same conference.
+const ck = s => SS.confKey(s);
+const confSet = a => new Set((a.conferences || []).map(ck));
+const inScope = (a, tags) => isMaster(a) || tags.some(t => confSet(a).has(ck(t)));
 function need(a, tier) {
   if (!tierAtLeast(a, tier)) throw new HttpError(403, tier === 'send' ? 'Your access is view only. Ask the site admin for send access.' : 'Your access does not include managing the roster.');
 }
@@ -159,11 +169,16 @@ async function saveTeams(db, teams, t) {
     db.prepare('INSERT INTO teams (code, short_name, full_name, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(code) DO UPDATE SET short_name = excluded.short_name, full_name = excluded.full_name, updated_at = excluded.updated_at')
       .bind(code, String(v[0] || code).slice(0, 80), String(v[1] || code).slice(0, 120), t));
   if (stmts.length) await db.batch(stmts);
-  // Link teams that have no school yet to the directory.
-  for (const [code, v] of Object.entries(teams || {})) {
-    const m = matchSchool({ code, short_name: v[0], full_name: v[1] });
-    if (m) await db.prepare('UPDATE teams SET school = ? WHERE code = ? AND school IS NULL').bind(m.short, code).run();
-  }
+  for (const code of Object.keys(teams || {})) await linkTeam(db, code);
+}
+// Make sure a team row exists and link it to its school when the match is confident (guesses from code letters wait for review on the Teams page).
+async function linkTeam(db, code) {
+  if (!code) return;
+  await db.prepare('INSERT INTO teams (code, updated_at) VALUES (?, ?) ON CONFLICT(code) DO NOTHING').bind(code, now()).run();
+  const t = await db.prepare('SELECT code, short_name, full_name, school FROM teams WHERE code = ?').bind(code).first();
+  if (t.school) return;
+  const m = matchSchool(t);
+  if (autoLink(m)) await db.prepare('UPDATE teams SET school = ? WHERE code = ? AND school IS NULL').bind(m.short, code).run();
 }
 // Same umpire + same Trackman game replaces the stored copy instead of duplicating it.
 async function saveGame(db, umpireId, g, fields, s, t, stats) {
@@ -176,6 +191,7 @@ async function saveGame(db, umpireId, g, fields, s, t, stats) {
       fields_json = excluded.fields_json, pitches_json = excluded.pitches_json, adj = excluded.adj, raw = excluded.raw, decisions = excluded.decisions, misses = excluded.misses, edge = excluded.edge, stats_json = excluded.stats_json`)
     .bind(gameId, umpireId, gameKey, g.Date, g.HomeTeam, g.AwayTeam, g.Stadium, g.Level, g.file, JSON.stringify(fields), JSON.stringify(g.pitches), t,
       s.adj, s.raw, s.decisions, s.missN, s.edgeAcc, stats ? JSON.stringify(stats) : null).run();
+  await linkTeam(db, g.HomeTeam); if (g.AwayTeam !== g.HomeTeam) await linkTeam(db, g.AwayTeam);
   return gameId;
 }
 
@@ -368,17 +384,18 @@ function cleanTags(v) {
 async function tagSpellings(env) {
   const m = new Map();
   for (const r of (await env.DB.prepare('SELECT tags FROM umpires WHERE tags IS NOT NULL').all()).results)
-    for (const t of parseTags(r.tags)) if (!m.has(t.toLowerCase())) m.set(t.toLowerCase(), t);
+    for (const t of parseTags(r.tags)) if (!m.has(ck(t))) m.set(ck(t), t);
   for (const r of (await env.DB.prepare('SELECT conferences FROM coordinators').all()).results)
-    for (const t of parseTags(r.conferences)) if (!m.has(t.toLowerCase())) m.set(t.toLowerCase(), t);
+    for (const t of parseTags(r.conferences)) if (!m.has(ck(t))) m.set(ck(t), t);
   return m;
 }
-const canon = (tags, m) => cleanTags(tags.map(t => { const k = t.toLowerCase(); if (!m.has(k)) m.set(k, t); return m.get(k); }));
+// Reuse the spelling already in use for a conference (typing 'Mountain West' when umpires are tagged 'MWC' keeps 'MWC').
+const canon = (tags, m) => cleanTags(tags.map(t => { const k = ck(t); if (!m.has(k)) m.set(k, t); return m.get(k); }));
 // A coordinator can only add or remove their own conferences; other conferences' tags are left as they were.
 function scopeTags(a, requested, existing = []) {
   if (isMaster(a)) return cleanTags(requested);
   const mine = confSet(a);
-  return cleanTags([...existing.filter(t => !mine.has(lc(t))), ...cleanTags(requested).filter(t => mine.has(lc(t)))]);
+  return cleanTags([...existing.filter(t => !mine.has(ck(t))), ...cleanTags(requested).filter(t => mine.has(ck(t)))]);
 }
 
 /* ---------------- umpires ---------------- */
@@ -424,9 +441,9 @@ async function dashboardData(env, a) {
     const r = reps[g.id];
     g.report = r ? { id: r.id, emailed_at: r.email_status === 'sent' ? r.emailed_at : null, first_opened_at: r.first_opened_at || null, open_count: r.open_count || 0 } : null;
   }
-  const confs = isMaster(a) ? null : a.conferences.map(lc);
+  const confs = isMaster(a) ? null : a.conferences.map(ck);
   const goals = (await env.DB.prepare('SELECT id, conference, metric, target, created_by, created_at FROM goals ORDER BY conference, metric').all()).results
-    .filter(g => !confs || confs.includes(lc(g.conference)));
+    .filter(g => !confs || confs.includes(ck(g.conference)));
   const since = (await env.DB.prepare(`SELECT v FROM meta WHERE k = 'engagement_since'`).first())?.v || null;
   const missing = (await env.DB.prepare('SELECT COUNT(*) AS n FROM games WHERE stats_json IS NULL').first())?.n || 0;
   return { umpires: ups, games, goals, trackSince: since, statsMissing: missing };
@@ -488,7 +505,7 @@ async function teamsAdmin(env, a, rest, m, body) {
 /* ---------------- staff goals ---------------- */
 async function goalsApi(env, a, rest, m, body) {
   const db = env.DB;
-  const mine = c => isMaster(a) || a.conferences.some(x => lc(x) === lc(c));
+  const mine = c => isMaster(a) || a.conferences.some(x => ck(x) === ck(c));
   if (rest === '' && m === 'PUT') {
     if (!isMaster(a)) need(a, 'full');
     const conference = cleanTags([body?.conference || ''])[0], metric = body?.metric, M = SS.METRICS[metric];

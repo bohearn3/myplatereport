@@ -10,6 +10,39 @@
   const isScrim = g => (g.home && g.home === g.away) || /exclusive|undefined/i.test(g.level || '');
   const lc = s => String(s || '').toLowerCase();
 
+  // Conference names: acronyms and full names are the same conference (MWC = Mountain West = Mountain West Conference).
+  // confKey() turns any spelling into one comparison key; unknown names compare by their own lowercase spelling.
+  const CONF_NAMES = {
+    'MWC': ['Mountain West', 'Mountain West Conference', 'MW'], 'WCC': ['West Coast', 'West Coast Conference'],
+    'PacWest': ['Pacific West', 'Pacific West Conference', 'Pac West', 'PWC'], 'RMAC': ['Rocky Mountain', 'Rocky Mountain Athletic Conference'],
+    'Big West': ['Big West Conference', 'BWC'], 'Pac-12': ['Pac 12', 'Pac12', 'Pacific-12', 'Pacific 12', 'Pac-12 Conference'],
+    'ACC': ['Atlantic Coast', 'Atlantic Coast Conference'], 'SEC': ['Southeastern', 'Southeastern Conference'],
+    'Big Ten': ['Big 10', 'B1G', 'Big Ten Conference'], 'Big 12': ['Big12', 'Big XII', 'Big 12 Conference'], 'Big East': ['Big East Conference'],
+    'Big South': ['Big South Conference'], 'American': ['AAC', 'American Athletic', 'American Athletic Conference', 'American Conference'],
+    'America East': ['America East Conference', 'AEC'], 'ASUN': ['Atlantic Sun', 'Atlantic Sun Conference', 'ASUN Conference'],
+    'A-10': ['A10', 'Atlantic 10', 'Atlantic Ten', 'Atlantic 10 Conference'], 'CAA': ['Coastal Athletic', 'Coastal Athletic Association', 'Colonial Athletic Association'],
+    'C-USA': ['CUSA', 'Conference USA'], 'Horizon': ['Horizon League'], 'Ivy': ['Ivy League'], 'MAAC': ['Metro', 'Metro Atlantic', 'Metro Atlantic Athletic Conference'],
+    'MAC': ['Mid-American', 'Mid American', 'Mid-American Conference'], 'MVC': ['Missouri Valley', 'Missouri Valley Conference', 'The Valley'],
+    'NEC': ['Northeast Conference'], 'OVC': ['Ohio Valley', 'Ohio Valley Conference'], 'Patriot': ['Patriot League'], 'SoCon': ['Southern', 'Southern Conference'],
+    'Southland': ['Southland Conference'], 'SWAC': ['Southwestern Athletic Conference'], 'Summit': ['Summit League', 'The Summit', 'The Summit League'],
+    'Sun Belt': ['Sun Belt Conference', 'SBC'], 'UAC': ['United Athletic', 'United Athletic Conference'], 'WAC': ['Western Athletic', 'Western Athletic Conference'],
+    'CCAA': ['California Collegiate Athletic Association'], 'GNAC': ['Great Northwest', 'Great Northwest Athletic Conference'],
+    'LSC': ['Lone Star', 'Lone Star Conference'], 'GSC': ['Gulf South', 'Gulf South Conference'], 'NSIC': ['Northern Sun', 'Northern Sun Intercollegiate Conference'],
+    'PSAC': ['Pennsylvania State Athletic Conference'], 'SAC': ['South Atlantic', 'South Atlantic Conference'], 'SSC': ['Sunshine State', 'Sunshine State Conference'],
+    'CACC': ['Central Atlantic Collegiate Conference'], 'MIAA': ['Mid-America Intercollegiate Athletics Association'], 'NE10': ['NE-10', 'Northeast-10', 'Northeast-10 Conference', 'Northeast 10'],
+    'G-MAC': ['GMAC', 'Great Midwest', 'Great Midwest Athletic Conference'], 'GLIAC': ['Great Lakes Intercollegiate Athletic Conference'],
+    'GLVC': ['Great Lakes Valley', 'Great Lakes Valley Conference'], 'MEC': ['Mountain East', 'Mountain East Conference'], 'ECC': ['East Coast Conference'],
+    'CIAA': ['Central Intercollegiate Athletic Association'], 'SIAC': ['Southern Intercollegiate Athletic Conference'], 'PBC': ['Peach Belt', 'Peach Belt Conference'],
+    'GAC': ['Great American', 'Great American Conference'], 'Conference Carolinas': ['CC', 'Carolinas'],
+    'SCIAC': ['Southern California Intercollegiate Athletic Conference'], 'NWC': ['Northwest Conference'], 'UAA': ['University Athletic Association'],
+    'ODAC': ['Old Dominion Athletic Conference'], 'MIAA (Michigan)': ['Michigan Intercollegiate Athletic Association']
+  };
+  const squash = s => lc(s).replace(/[^a-z0-9]/g, '');
+  const CONF_KEY = {};
+  Object.entries(CONF_NAMES).forEach(([abbr, names]) => [abbr, ...names].forEach(n => { CONF_KEY[squash(n)] = squash(abbr); }));
+  const confKey = s => { const k = squash(s); return CONF_KEY[k] || CONF_KEY[k.replace(/conference$/, '')] || k; };
+  const confName = s => { const k = confKey(s); const hit = Object.entries(CONF_NAMES).find(([a]) => squash(a) === k); return hit ? hit[1].find(n => / Conference$| League$| Association$/.test(n)) || hit[1][0] : null; };
+
   const SITUATIONS = [['first', 'First pitch'], ['ahead', 'Pitcher ahead'], ['even', 'Even count'], ['behind', 'Hitter ahead'], ['two', '2 strikes'], ['three', '3 balls'], ['full', 'Full count']];
   const REGIONS = [['Top', 'Top of the zone'], ['Bottom', 'Bottom of the zone'], ['Inside', 'Inside edge'], ['Outside', 'Outside edge']];
   const METRICS = {
@@ -21,11 +54,11 @@
 
   // Which games a view counts. mode 'umpire': every game the roster's umpires worked; 'conference': only games hosted by the conference's teams.
   function selectGames(games, umpires, { season = 'all', scrim = true, confs = null, mode = 'umpire' } = {}) {
-    const want = confs && confs.length ? new Set(confs.map(lc)) : null;
-    const ups = umpires.filter(u => !want || (u.tags || []).some(t => want.has(lc(t))));
+    const want = confs && confs.length ? new Set(confs.map(confKey)) : null;
+    const ups = umpires.filter(u => !want || (u.tags || []).some(t => want.has(confKey(t))));
     const byId = Object.fromEntries(ups.map(u => [u.id, u]));
     const list = games.filter(g => byId[g.umpire_id] && g.adj != null && (season === 'all' || seasonOf(g.date) === season) && (scrim || !isScrim(g))
-      && (mode !== 'conference' || (want ? want.has(lc(g.home_conf)) : !!g.home_conf)));
+      && (mode !== 'conference' || (want ? want.has(confKey(g.home_conf)) : !!g.home_conf)));
     return { games: list, umpires: ups, byId };
   }
 
@@ -119,7 +152,7 @@
     return { M, cur, target: goal.target, met, gap };
   }
 
-  const api = { MIN_GAMES, SITUATIONS, REGIONS, METRICS, seasonOf, seasonRank, isScrim, selectGames, summarize, goalProgress, metricValue, avg };
+  const api = { confKey, confName, CONF_NAMES, MIN_GAMES, SITUATIONS, REGIONS, METRICS, seasonOf, seasonRank, isScrim, selectGames, summarize, goalProgress, metricValue, avg };
   root.StaffStats = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

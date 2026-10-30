@@ -34,11 +34,20 @@ const variantsOf = s => {
 // Former names Trackman still uses in team codes or names.
 const FORMER = { 'Utah Tech': ['Dixie State', 'Dixie'] };
 // Trackman codes that don't follow the school + nickname pattern.
-const CODE_ALIASES = { DIX_STE: 'Utah Tech' };
+// Trackman codes confirmed against 2026 schedules and two or more players on each team's 2026 roster or box scores
+// (transfers make a single player unreliable). Numbered codes (CHA_UNI1) are different teams from the plain code (CHA_UNI).
+const CODE_ALIASES = {
+  CAL_LAN: 'Cal Baptist', UMASS_RIV: 'UMass Lowell', WIN_EAG: 'Winthrop',
+  DIX_STE: 'Utah Tech', CAL_AGO: 'UC Davis', CAL_STA: 'Cal State San Bernardino', CAL_STA6: 'Cal State East Bay', CON_UNI1: 'Concordia Irvine',
+  CHA_UNI: 'Chapman', CHA_UNI1: 'Chaminade', WHI_COL: 'Whitman', WHI_COL1: 'Whittier', VER_VER: 'La Verne', KAL_COL: 'Kalamazoo',
+  BRI_EAG: 'Bridgewater (VA)', CHI_MRN: 'Chicago', WAS_EDA: 'Waseda', SIE_COL: 'Sierra College', POM_COL: 'Pomona-Pitzer',
+  CLA_MUD: 'Claremont-Mudd-Scripps', CAL_TEC: 'Caltech', CLU_KIN: 'Cal Lutheran', GEO_FOX: 'George Fox', PUG_SOU: 'Puget Sound', RED_UNI: 'Redlands'
+};
 const GENERIC = new Set(['california', 'colorado', 'texas', 'florida', 'georgia', 'missouri', 'oklahoma', 'washington', 'pennsylvania', 'virginia', 'minnesota', 'michigan']);
 const INDEX = SCHOOLS.map(s => ({ s, vars: [...variantsOf(s), ...(FORMER[s.short] || []).map(norm)], nick: s.nickname ? norm(s.nickname) : null }));
 
-// Returns { short, how } or null. how: 'name' (team name matched a school name + nickname), 'prefix' (name starts with a school name), 'code'.
+// Returns { short, how } or null. how: 'name' (team name matched a school name + nickname), 'prefix' (name starts with a school name),
+// 'known' (a confirmed Trackman code), 'code' (guessed from the code's letters; needs a person to confirm).
 export function matchSchool({ code, short_name, full_name } = {}) {
   const names = [full_name, short_name].map(norm).filter(Boolean);
   let best = null, tie = false;
@@ -57,8 +66,9 @@ export function matchSchool({ code, short_name, full_name } = {}) {
     }
     if (best && !tie) return { short: best.s.short, how: best.how };
   }
-  const known = CODE_ALIASES[String(code || '').toUpperCase().replace(/\d+$/, '')];
-  if (known && byShort.has(known)) return { short: known, how: 'code' };
+  const C = String(code || '').toUpperCase();
+  const known = CODE_ALIASES[C];
+  if (known && byShort.has(known)) return { short: known, how: 'known' };
   // Trackman codes look like SAN_TOR: first letters of the school + first letters of the nickname.
   const m = String(code || '').toLowerCase().match(/^([a-z]{2,6})_([a-z]{2,4})$/);
   if (m) {
@@ -67,3 +77,6 @@ export function matchSchool({ code, short_name, full_name } = {}) {
   }
   return null;
 }
+
+// Link automatically unless the match is only a guess from the code's letters.
+export const autoLink = m => !!m && m.how !== 'code';

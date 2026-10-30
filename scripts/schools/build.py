@@ -34,6 +34,9 @@ CONF_FULL = {
     'Conference Carolinas': 'Conference Carolinas', 'PacWest': 'Pacific West Conference', 'CIAA': 'Central Intercollegiate Athletic Association',
     'CACC': 'Central Atlantic Collegiate Conference', 'CCAA': 'California Collegiate Athletic Association', 'GNAC': 'Great Northwest Athletic Conference',
     'PSAC': 'Pennsylvania State Athletic Conference', 'MEC': 'Mountain East Conference', 'ECC': 'East Coast Conference',
+    'SCIAC': 'Southern California Intercollegiate Athletic Conference', 'NWC': 'Northwest Conference', 'UAA': 'University Athletic Association',
+    'ODAC': 'Old Dominion Athletic Conference', 'MIAA (Michigan)': 'Michigan Intercollegiate Athletic Association', 'Big 8 (CCCAA)': 'Big 8 Conference (California Community College Athletic Association)',
+    'Exhibition': 'Exhibition / international opponent',
     'GLIAC': 'Great Lakes Intercollegiate Athletic Conference', 'GLVC': 'Great Lakes Valley Conference', 'MIAA': 'Mid-America Intercollegiate Athletics Association',
 }
 D2_CONF = {
@@ -169,6 +172,17 @@ def main():
         schools.append({'name': name, 'short': short, 'aliases': [], 'nickname': None, 'state': place.split(', ')[-1],
                         'seasons': {'2026': {'conf': c, 'div': 'D2'}, '2027': {'conf': c, 'div': 'D2'}}})
 
+    # D3, junior college and international teams seen in our files (other.txt)
+    for line in open(HERE + '/other.txt', encoding='utf-8'):
+        line = line.strip()
+        if not line or line.startswith('#'): continue
+        name, short, nick, state, div, conf = [x.strip() for x in line.split('|')]
+        if short in seen: sys.exit(f'duplicate short name {short}')
+        if conf not in CONF_FULL: sys.exit(f'unknown conference {conf}')
+        seen.add(short)
+        schools.append({'name': name, 'short': short, 'aliases': [], 'nickname': nick, 'state': state,
+                        'seasons': {'2026': {'conf': conf, 'div': div}, '2027': {'conf': conf, 'div': div}}})
+
     out = {
         'built': '2026-10-29',
         'seasons': ['2026', '2027'],
@@ -177,6 +191,7 @@ def main():
             'D1 2027: Wikipedia, List of NCAA Division I baseball programs (affiliations for the 2027 season)',
             'D1 2026: same list with post-2026 baseball moves from Wikipedia, 2026 NCAA Division I baseball season, undone',
             'D2: NCSA, Division 2 baseball colleges (2026), corrected where NCSA lists a non-D2 conference',
+            'D3 / JUCO / international: teams seen in our Trackman files (SCIAC and NWC in full), scripts/schools/other.txt',
         ],
         'conferences': {k: v for k, v in sorted(CONF_FULL.items())},
         'schools': sorted(schools, key=lambda s: s['short'].lower()),

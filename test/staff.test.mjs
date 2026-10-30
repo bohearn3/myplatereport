@@ -106,4 +106,18 @@ r = await call('/admin/api/coordinators/digest-preview', { method: 'POST', heade
 check('preview goes to the admin, labelled', r.status === 200 && mails.length === 1 && mails[0].to[0] === 'bohearn3@gmail.com' && mails[0].subject.startsWith('[Preview]'), mails[0]?.subject);
 fs.writeFileSync('/tmp/claude-0/-home-claude/872964eb-941d-50de-aa00-00da5e85d73d/scratchpad/digest_preview.html', mails[0].html);
 r = await call('/coord/api/coordinators/digest-preview', { method: 'POST', headers: F, body: {} }); check('coordinators cannot send previews', r.status === 403);
+// conference names: acronyms and full names are the same conference
+check('MWC = Mountain West = Mountain West Conference', SS.confKey('MWC') === SS.confKey('Mountain West') && SS.confKey('mountain west conference') === SS.confKey('MWC') && SS.confKey('Pacific West Conference') === SS.confKey('PacWest') && SS.confKey('WCC') !== SS.confKey('MWC'));
+await call('/admin/api/umpires/import', { method: 'POST', headers: M, body: { tag: 'MWC', rows: [{ name: 'Mo West', email: 'mo@x.com' }] } });
+await call('/admin/api/umpires/import', { method: 'POST', headers: M, body: { tag: 'Mountain West', rows: [{ name: 'Mia West', email: 'mia@x.com' }] } });
+L = (await call('/admin/api/umpires', { headers: M })).j.umpires;
+check('a full conference name reuses the existing acronym tag', L.find(u => u.name === 'Mia West').tags.includes('MWC') && !L.find(u => u.name === 'Mia West').tags.includes('Mountain West'));
+await call('/admin/api/coordinators', { method: 'POST', headers: M, body: { name: 'Mwc Coord', email: 'mc@x.com', conferences: ['Mountain West Conference'], tier: 'view' } });
+const MC = await signIn('mc@x.com');
+r = await call('/coord/api/umpires', { headers: MC });
+check('a coordinator set up as "Mountain West Conference" sees MWC-tagged umpires', r.j.umpires.some(u => u.name === 'Mo West') && r.j.umpires.some(u => u.name === 'Mia West'), r.j.umpires.map(u => u.name).join(', '));
+// D3 / confirmed codes link automatically, even with no team name
+const SC2 = await import('../src/schools.js');
+check('confirmed Trackman codes link without a team name', SC2.autoLink(SC2.matchSchool({ code: 'POM_COL' })) && SC2.matchSchool({ code: 'CHA_UNI1' }).short === 'Chaminade' && SC2.matchSchool({ code: 'CHA_UNI' }).short === 'Chapman');
+check('D3 schools carry their conference', SC2.schoolSeason('Pomona-Pitzer', 2026).conf === 'SCIAC' && SC2.schoolSeason('Pomona-Pitzer', 2026).div === 'D3');
 console.log(`\n${pass} passed, ${fail} failed`);
