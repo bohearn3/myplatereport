@@ -12,12 +12,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/admin.css">
 <style>
-/* Layout: one column. My season (focus card, zone map + called zone, misses + counts, zone trend), then trends tiles/charts, then the list of games. */
+/* Layout: one column. My trends (tiles + charts) first, then My season (focus card, zone map + called zone, misses + counts, zone trend), then the list of games. */
 :root{--strike:#1D5E8F;--ballc:#8C98A5;--miss:#D1453B;--band:rgba(99,166,218,.22)}
 @media (prefers-color-scheme:dark){:root{--strike:#7FB9E6;--ballc:#6E7B88;--miss:#F0675C;--band:rgba(99,166,218,.20)}}
 .staffbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;background:color-mix(in srgb,var(--powder) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--powder) 45%,var(--line));border-radius:10px;padding:10px 14px;font-size:.88rem;margin:0 0 6px}
 .staffbar a{color:var(--deep);font-weight:700}
-.seasonbar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:28px 0 10px}
+.seasonbar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:36px 0 10px}
 .seasonbar h2{margin:0}
 .seasonbar select{width:auto}
 .focus{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 16px;display:flex;gap:14px;align-items:flex-start}
@@ -106,6 +106,12 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
   <p class="sub" id="sub">Loading your games…</p>
   <div class="staffbar" id="staffbar" hidden></div>
   <div id="m"></div>
+  <section id="trends" hidden>
+    <h2>My trends</h2>
+    <div class="tiles" id="tiles"></div>
+    <div class="charts" id="charts" style="margin-top:10px"></div>
+    <div class="legend2"><span><i style="background:var(--deep)"></i>Regular season</span><span><i style="border:2px solid var(--deep);box-sizing:border-box"></i>Scrimmage / intrasquad</span><span>Dashed line: your average · tap a dot to open that report</span></div>
+  </section>
   <section id="season" hidden>
     <div class="seasonbar"><h2>My season</h2><label class="sr" for="season-pick" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Season</label><select id="season-pick"></select></div>
     <div class="focus" id="focus"></div>
@@ -121,12 +127,6 @@ h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mu
       <div class="panel" id="counts"></div>
     </div>
     <div class="panel trend" id="trend" style="margin-top:12px"></div>
-  </section>
-  <section id="trends" hidden>
-    <h2>My trends</h2>
-    <div class="tiles" id="tiles"></div>
-    <div class="charts" id="charts" style="margin-top:10px"></div>
-    <div class="legend2"><span><i style="background:var(--deep)"></i>Regular season</span><span><i style="border:2px solid var(--deep);box-sizing:border-box"></i>Scrimmage / intrasquad</span><span>Dashed line: your average · tap a dot to open that report</span></div>
   </section>
   <section>
     <h2>My games</h2>
